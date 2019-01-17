@@ -9,14 +9,17 @@ import com.google.common.collect.ImmutableList;
 public class DeNovoResult {
 
   public enum Output {
-    A1("Allele_1", DeNovoResult::getA1),
-    A2("Allele_2", DeNovoResult::getA2),
+    CHILD_ID("ID", r -> r.getChild().getId()),
+    A1("Allele_1", r -> (char) r.getA1()),
+    A2("Allele_2", r -> (char) r.getA2()),
     CHILD_DEPTH("Depth", r -> r.getChild().getDepth()),
     CHILD_A1_DEPTH("Allele_1_Depth", r -> r.getChild().getA1Depth()),
     CHILD_A2_DEPTH("Allele_2_Depth", r -> r.getChild().getA2Depth()),
+    P1_ID("ID", r -> r.getParent1().getId()),
     P1_DEPTH("Parent1_Depth", r -> r.getParent1().getDepth()),
     P1_A1_DEPTH("Parent1_Allele_1_Depth", r -> r.getParent1().getA1Depth()),
     P1_A2_DEPTH("Parent1_Allele_2_Depth", r -> r.getParent1().getA2Depth()),
+    P2_ID("ID", r -> r.getParent2().getId()),
     P2_DEPTH("Parent2_Depth", r -> r.getParent2().getDepth()),
     P2_A1_DEPTH("Parent2_Allele_1_Depth", r -> r.getParent2().getA1Depth()),
     P2_A2_DEPTH("Parent2_Allele_2_Depth", r -> r.getParent2().getA2Depth());
@@ -61,7 +64,7 @@ public class DeNovoResult {
     private final int a2Depth;
 
     /**
-     * @param id TODO
+     * @param id
      * @param depth
      * @param a1Depth
      * @param a2Depth
@@ -72,6 +75,13 @@ public class DeNovoResult {
       this.depth = depth;
       this.a1Depth = a1Depth;
       this.a2Depth = a2Depth;
+    }
+
+    /**
+     * @return the id
+     */
+    public String getId() {
+      return id;
     }
 
     /**
