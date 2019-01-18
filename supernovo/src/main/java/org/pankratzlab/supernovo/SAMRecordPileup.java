@@ -1,12 +1,14 @@
 package org.pankratzlab.supernovo;
 
+import java.util.Collection;
+import java.util.Map;
 import org.pankratzlab.supernovo.utilities.Phred;
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multiset;
+import com.google.common.collect.ListMultimap;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
@@ -58,8 +60,6 @@ public class SAMRecordPileup implements Pileup {
     }
   }
 
-  private static final double PHRED_WEIGHTING_CORRECTION = 1000000;
-
   private final ImmutableSetMultimap<Byte, PiledRecord> basePiles;
   private final ImmutableMap<Byte, Double> weightedBaseCounts;
 
@@ -69,35 +69,30 @@ public class SAMRecordPileup implements Pileup {
             position.getContig(), position.getPosition(), position.getPosition())) {
       ImmutableSetMultimap.Builder<Byte, PiledRecord> basePilesBuilder =
           ImmutableSetMultimap.builder();
-      Multiset<Byte> weightedCountsBuilder = HashMultiset.create();
+      ListMultimap<Byte, Integer> basePhreds = ArrayListMultimap.create();
       while (iterator.hasNext()) {
         SAMRecord samRecord = iterator.next();
         int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
         if (readPos != -1) {
           Byte base = samRecord.getReadBases()[readPos];
           basePilesBuilder.put(base, new PiledRecord(samRecord));
-          weightedCountsBuilder.add(
-              base, phredToWeightCorrectingInt(samRecord.getBaseQualities()[readPos]));
+          basePhreds.put(base, Integer.valueOf(samRecord.getBaseQualities()[readPos]));
         }
       }
       basePiles = basePilesBuilder.build();
       weightedBaseCounts =
-          weightedCountsBuilder
+          basePhreds
+              .asMap()
               .entrySet()
               .stream()
               .collect(
                   ImmutableMap.toImmutableMap(
-                      Multiset.Entry::getElement,
-                      e -> weightCorrectedIntToWeightedDepth(e.getCount())));
+                      Map.Entry::getKey, SAMRecordPileup::phredScoresToWeightedDepth));
     }
   }
 
-  private static int phredToWeightCorrectingInt(int phredScore) {
-    return Math.toIntExact(Math.round(PHRED_WEIGHTING_CORRECTION * Phred.getAccuracy(phredScore)));
-  }
-
-  private static double weightCorrectedIntToWeightedDepth(double weightCorrectedInt) {
-    return weightCorrectedInt / PHRED_WEIGHTING_CORRECTION;
+  private static double phredScoresToWeightedDepth(Map.Entry<?, Collection<Integer>> phredScores) {
+    return phredScores.getValue().stream().mapToDouble(Phred::getAccuracy).sum();
   }
 
   @Override
