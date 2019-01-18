@@ -10,6 +10,8 @@ public class DeNovoResult {
 
   public enum Output {
     CHILD_ID("ID", r -> r.getChild().getId()),
+    CHR("Chr", r -> r.getPos().getContig()),
+    POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
     CHILD_DEPTH("Depth", r -> r.getChild().getDepth()),
@@ -107,16 +109,25 @@ public class DeNovoResult {
 
   }
 
+  private final Position pos;
   private final byte a1;
   private final byte a2;
   private final Sample child;
   private final List<Sample> parents;
 
-  public DeNovoResult(byte a1, byte a2, Sample child, Sample p1, Sample p2) {
+  public DeNovoResult(Position pos, byte a1, byte a2, Sample child, Sample p1, Sample p2) {
+    this.pos = pos;
     this.a1 = a1;
     this.a2 = a2;
     this.child = child;
     this.parents = ImmutableList.of(p1, p2);
+  }
+
+  /**
+   * @return the pos
+   */
+  public Position getPos() {
+    return pos;
   }
 
   /**

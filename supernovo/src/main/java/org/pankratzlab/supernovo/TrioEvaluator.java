@@ -81,11 +81,11 @@ public class TrioEvaluator {
       Iterator<Byte> alleleIter = baseCounts.elementSet().iterator();
       Byte a1 = alleleIter.next();
       Byte a2 = alleleIter.next();
-      return Optional.of(new DeNovoResult(a1.byteValue(), a2.byteValue(),
+      return Optional.of(new DeNovoResult(pos, a1.byteValue(),
+                                          a2.byteValue(),
                                           generateSample(childID, childPile, a1, a2),
                                           generateSample(parent1ID, p1Pileups.getUnchecked(pos), a1,
-                                                         a2),
-                                          generateSample(parent2ID, p2Pileups.getUnchecked(pos), a1,
+                                                         a2), generateSample(parent2ID, p2Pileups.getUnchecked(pos), a1,
                                                          a2)));
     }
     return Optional.empty();
