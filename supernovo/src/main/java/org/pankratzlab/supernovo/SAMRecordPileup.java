@@ -1,7 +1,9 @@
 package org.pankratzlab.supernovo;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.stream.Collector;
 import org.pankratzlab.supernovo.utilities.Phred;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -9,6 +11,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
@@ -86,13 +89,21 @@ public class SAMRecordPileup implements Pileup {
               .entrySet()
               .stream()
               .collect(
-                  ImmutableMap.toImmutableMap(
-                      Map.Entry::getKey, SAMRecordPileup::phredScoresToWeightedDepth));
+                  Collector.of(
+                      () ->
+                          ImmutableMap.<Byte, Double>builder()
+                              .orderEntriesByValue(Comparator.reverseOrder()),
+                      (b, e) -> b.put(phredScoresToWeightedDepth(e)),
+                      (b1, b2) -> b1.putAll(b2.build()),
+                      ImmutableMap.Builder::build));
     }
   }
 
-  private static double phredScoresToWeightedDepth(Map.Entry<?, Collection<Integer>> phredScores) {
-    return phredScores.getValue().stream().mapToDouble(Phred::getAccuracy).sum();
+  private static <K> Map.Entry<K, Double> phredScoresToWeightedDepth(
+      Map.Entry<K, Collection<Integer>> phredScores) {
+    return Maps.immutableEntry(
+        phredScores.getKey(),
+        phredScores.getValue().stream().mapToDouble(Phred::getAccuracy).sum());
   }
 
   @Override
