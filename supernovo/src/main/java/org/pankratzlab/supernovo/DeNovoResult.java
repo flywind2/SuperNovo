@@ -36,9 +36,7 @@ public class DeNovoResult {
       dataGenerator = getter.andThen(Object::toString);
     }
 
-    /**
-     * @return the columnHeader
-     */
+    /** @return the columnHeader */
     public String getColumnHeader() {
       return columnHeader;
     }
@@ -48,14 +46,14 @@ public class DeNovoResult {
     }
 
     public static String generateHeaderLine() {
-      return Arrays.stream(values()).map(Output::getColumnHeader)
-                   .collect(Collectors.joining(DELIM));
+      return Arrays.stream(values())
+          .map(Output::getColumnHeader)
+          .collect(Collectors.joining(DELIM));
     }
 
     public static String generateOutputLine(DeNovoResult result) {
       return Arrays.stream(values()).map(o -> o.getData(result)).collect(Collectors.joining(DELIM));
     }
-
   }
 
   public static class Sample {
@@ -79,34 +77,25 @@ public class DeNovoResult {
       this.a2Depth = a2Depth;
     }
 
-    /**
-     * @return the id
-     */
+    /** @return the id */
     public String getId() {
       return id;
     }
 
-    /**
-     * @return the depth
-     */
+    /** @return the depth */
     public int getDepth() {
       return depth;
     }
 
-    /**
-     * @return the a1Depth
-     */
+    /** @return the a1Depth */
     public int getA1Depth() {
       return a1Depth;
     }
 
-    /**
-     * @return the a2Depth
-     */
+    /** @return the a2Depth */
     public int getA2Depth() {
       return a2Depth;
     }
-
   }
 
   private final Position pos;
@@ -123,53 +112,38 @@ public class DeNovoResult {
     this.parents = ImmutableList.of(p1, p2);
   }
 
-  /**
-   * @return the pos
-   */
+  /** @return the pos */
   public Position getPos() {
     return pos;
   }
 
-  /**
-   * @return the a1
-   */
+  /** @return the a1 */
   public byte getA1() {
     return a1;
   }
 
-  /**
-   * @return the a2
-   */
+  /** @return the a2 */
   public byte getA2() {
     return a2;
   }
 
-  /**
-   * @return the child
-   */
+  /** @return the child */
   public Sample getChild() {
     return child;
   }
 
-  /**
-   * @return the parents
-   */
+  /** @return the parents */
   public List<Sample> getParents() {
     return parents;
   }
 
-  /**
-   * @return the parent1
-   */
+  /** @return the parent1 */
   public Sample getParent1() {
     return parents.get(0);
   }
 
-  /**
-   * @return the parent2
-   */
+  /** @return the parent2 */
   public Sample getParent2() {
     return parents.get(1);
   }
-
 }

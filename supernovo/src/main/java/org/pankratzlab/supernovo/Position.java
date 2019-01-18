@@ -23,18 +23,13 @@ public class Position {
     this.position = vc.getStart();
   }
 
-  /**
-   * @return the contig
-   */
+  /** @return the contig */
   public String getContig() {
     return contig;
   }
 
-  /**
-   * @return the position
-   */
+  /** @return the position */
   public int getPosition() {
     return position;
   }
-
 }

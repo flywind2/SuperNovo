@@ -18,8 +18,9 @@ public class SAMRecordPileup implements Pileup {
     private PiledRecord(SAMRecord samRecord) {
       id = samRecord.hashCode();
       mq = samRecord.getMappingQuality();
-      clipped = samRecord.getUnclippedStart() != samRecord.getStart()
-                || samRecord.getUnclippedEnd() != samRecord.getStart();
+      clipped =
+          samRecord.getUnclippedStart() != samRecord.getStart()
+              || samRecord.getUnclippedEnd() != samRecord.getStart();
     }
 
     /*
@@ -51,21 +52,21 @@ public class SAMRecordPileup implements Pileup {
       if (mq != other.mq) return false;
       return true;
     }
-
   }
 
   private final ImmutableSetMultimap<Byte, PiledRecord> basePiles;
 
   public SAMRecordPileup(SamReader samReader, Position position) {
-    try (SAMRecordIterator iterator = samReader.queryOverlapping(position.getContig(),
-                                                                 position.getPosition(),
-                                                                 position.getPosition())) {
-      ImmutableSetMultimap.Builder<Byte, PiledRecord> basePilesBuilder = ImmutableSetMultimap.builder();
+    try (SAMRecordIterator iterator =
+        samReader.queryOverlapping(
+            position.getContig(), position.getPosition(), position.getPosition())) {
+      ImmutableSetMultimap.Builder<Byte, PiledRecord> basePilesBuilder =
+          ImmutableSetMultimap.builder();
       while (iterator.hasNext()) {
         SAMRecord samRecord = iterator.next();
         int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
-        if (readPos != -1) basePilesBuilder.put(samRecord.getReadBases()[readPos],
-                                                new PiledRecord(samRecord));
+        if (readPos != -1)
+          basePilesBuilder.put(samRecord.getReadBases()[readPos], new PiledRecord(samRecord));
       }
       basePiles = basePilesBuilder.build();
     }
@@ -80,5 +81,4 @@ public class SAMRecordPileup implements Pileup {
   public ImmutableMultimap<Byte, PiledRecord> getRecordsByBase() {
     return basePiles;
   }
-
 }

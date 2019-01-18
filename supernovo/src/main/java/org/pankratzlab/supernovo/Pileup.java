@@ -9,5 +9,4 @@ public interface Pileup {
   public ImmutableMultiset<Byte> getBaseCounts();
 
   public ImmutableMultimap<Byte, PiledRecord> getRecordsByBase();
-
 }

@@ -29,5 +29,4 @@ public class Segment {
   public Segment(VariantContext vc) {
     this(vc.getContig(), vc.getStart(), vc.getEnd());
   }
-
 }
