@@ -1,6 +1,8 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.metrics;
 
 import java.util.function.Function;
+import org.pankratzlab.supernovo.Pileup;
+import org.pankratzlab.supernovo.Position;
 
 public abstract class SampleMetric implements Metric {
 

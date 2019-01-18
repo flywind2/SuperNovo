@@ -1,4 +1,4 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.metrics;
 
 public interface Metric {
   public String getOutput();
