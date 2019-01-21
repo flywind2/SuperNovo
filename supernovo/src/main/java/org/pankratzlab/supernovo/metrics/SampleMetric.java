@@ -1,20 +1,27 @@
 package org.pankratzlab.supernovo.metrics;
 
-import java.util.function.Function;
-import org.pankratzlab.supernovo.Pileup;
-import org.pankratzlab.supernovo.Position;
-
 public abstract class SampleMetric implements Metric {
-
-  private final Function<Position, Pileup> pileupFunc;
-
-  /** @param pileupFunc */
-  public SampleMetric(Function<Position, Pileup> pileupFunc) {
-    super();
-    this.pileupFunc = pileupFunc;
+  public enum Type {
+    CHILD,
+    P1,
+    P2;
   }
 
-  protected Pileup getPileup(Position pos) {
-    return pileupFunc.apply(pos);
+  private final Type type;
+  private final String baseHeader;
+
+  /**
+   * @param type
+   * @param baseHeader
+   */
+  public SampleMetric(Type type, String baseHeader) {
+    super();
+    this.type = type;
+    this.baseHeader = baseHeader;
+  }
+
+  @Override
+  public String getColumnHeader() {
+    return type.toString() + baseHeader;
   }
 }
