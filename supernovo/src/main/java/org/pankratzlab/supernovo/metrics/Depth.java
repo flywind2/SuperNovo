@@ -73,4 +73,24 @@ public class Depth {
   public Set<Byte> getBiAlleles() {
     return biAlleles;
   }
+
+  public double allelicWeightedDepth(byte allele) {
+    return pileup.getWeightedBaseCounts().get(allele);
+  }
+
+  public double allelicWeightedDepth(Allele allele) {
+    return allele
+        .getAllele(this)
+        .map(this::allelicWeightedDepth)
+        .orElse(Double.valueOf(0))
+        .doubleValue();
+  }
+
+  public int allelicRawDepth(byte allele) {
+    return pileup.getBaseCounts().count(allele);
+  }
+
+  public int allelicRawDepth(Allele allele) {
+    return allele.getAllele(this).map(this::allelicRawDepth).orElse(Integer.valueOf(0)).intValue();
+  }
 }
