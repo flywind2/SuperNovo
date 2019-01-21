@@ -58,11 +58,14 @@ public class TrioEvaluator {
     this.parent2ID = parent2ID;
 
     this.childPileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(child, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(pos -> SAMRecordPileup.pileOverlapping(child, pos)));
     this.p1Pileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(parent1, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(pos -> SAMRecordPileup.pileOverlapping(parent1, pos)));
     this.p2Pileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(parent2, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(pos -> SAMRecordPileup.pileOverlapping(parent2, pos)));
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
@@ -90,6 +93,7 @@ public class TrioEvaluator {
   private Optional<DeNovoResult> evaluate(Position pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
     if (looksBiallelic(childPile) && looksDenovo(pos, childPile.getDepth())) {
+
       return Optional.of(
           new DeNovoResult(
               pos,
