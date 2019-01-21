@@ -7,7 +7,6 @@ import java.util.stream.Collector;
 import org.pankratzlab.supernovo.utilities.Phred;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
@@ -118,7 +117,7 @@ public class SAMRecordPileup extends AbstractPileup {
   }
 
   @Override
-  public ImmutableMultimap<Byte, PiledRecord> getRecordsByBase() {
+  public ImmutableSetMultimap<Byte, PiledRecord> getRecordsByBase() {
     return basePiles;
   }
 }
