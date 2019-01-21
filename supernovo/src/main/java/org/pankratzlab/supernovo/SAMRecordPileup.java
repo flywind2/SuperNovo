@@ -16,7 +16,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
 
-public class SAMRecordPileup implements Pileup {
+public class SAMRecordPileup extends AbstractPileup {
 
   public static class PiledRecord {
 
@@ -67,6 +67,7 @@ public class SAMRecordPileup implements Pileup {
   private final ImmutableMap<Byte, Double> weightedBaseCounts;
 
   public SAMRecordPileup(SamReader samReader, Position position) {
+    super();
     try (SAMRecordIterator iterator =
         samReader.queryOverlapping(
             position.getContig(), position.getPosition(), position.getPosition())) {

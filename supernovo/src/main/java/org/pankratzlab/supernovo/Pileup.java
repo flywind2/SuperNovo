@@ -1,6 +1,7 @@
 package org.pankratzlab.supernovo;
 
 import org.pankratzlab.supernovo.SAMRecordPileup.PiledRecord;
+import org.pankratzlab.supernovo.metrics.Depth;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
@@ -18,4 +19,7 @@ public interface Pileup {
 
   /** @return Multimap from byte value of bases to {@link PiledRecord}s for that base */
   public ImmutableMultimap<Byte, PiledRecord> getRecordsByBase();
+
+  /** @return the {@link Depth} for this {@link Pileup} */
+  public Depth getDepth();
 }
