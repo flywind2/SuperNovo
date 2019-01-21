@@ -1,6 +1,5 @@
 package org.pankratzlab.supernovo;
 
-import org.pankratzlab.supernovo.SAMRecordPileup.PiledRecord;
 import org.pankratzlab.supernovo.metrics.Depth;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
