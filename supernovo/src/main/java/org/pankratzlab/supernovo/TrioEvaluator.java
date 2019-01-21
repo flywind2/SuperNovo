@@ -5,15 +5,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.pankratzlab.supernovo.metrics.Depth;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Multiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SamReader;
 import htsjdk.variant.variantcontext.Allele;
@@ -87,58 +89,52 @@ public class TrioEvaluator {
 
   private Optional<DeNovoResult> evaluate(Position pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
-    Multiset<Byte> baseCounts = passingBaseCounts(childPile.getBaseCounts());
-    if (baseCountBiallelicVariant(baseCounts) && looksDenovo(pos, baseCounts)) {
-      Iterator<Byte> alleleIter = baseCounts.elementSet().iterator();
-      Byte a1 = alleleIter.next();
-      Byte a2 = alleleIter.next();
+    if (looksBiallelic(childPile) && looksDenovo(pos, childPile.getDepth())) {
       return Optional.of(
           new DeNovoResult(
               pos,
-              a1.byteValue(),
-              a2.byteValue(),
-              generateSample(childID, childPile, a1, a2),
-              generateSample(parent1ID, p1Pileups.getUnchecked(pos), a1, a2),
-              generateSample(parent2ID, p2Pileups.getUnchecked(pos), a1, a2)));
+              generateSample(childID, childPile),
+              generateSample(parent1ID, p1Pileups.getUnchecked(pos)),
+              generateSample(parent2ID, p2Pileups.getUnchecked(pos))));
     }
     return Optional.empty();
   }
 
-  private static boolean baseCountBiallelicVariant(Multiset<Byte> baseCounts) {
-    return baseCounts.size() >= MIN_DEPTH
-        && baseCounts.elementSet().size() == 2
-        && baseCounts
+  private static boolean looksBiallelic(Pileup pileup) {
+    Depth depth = pileup.getDepth();
+    return depth.getBiAlleles().size() == 2
+        && depth.weightedBiallelicDepth() >= MIN_DEPTH
+        && pileup
+            .getWeightedBaseCounts()
             .entrySet()
             .stream()
-            .mapToInt(Multiset.Entry::getCount)
-            .allMatch(i -> i >= MIN_ALLELIC_DEPTH);
+            .filter(e -> !depth.getBiAlleles().contains(e.getKey()))
+            .mapToDouble(Map.Entry::getValue)
+            .map(d -> d / depth.weightedTotalDepth())
+            .allMatch(f -> f <= MAX_MISCALL_RATIO)
+        && Arrays.stream(Depth.Allele.values())
+            .mapToDouble(depth::allelicWeightedDepth)
+            .allMatch(d -> d >= MIN_ALLELIC_DEPTH);
   }
 
-  private static DeNovoResult.Sample generateSample(String id, Pileup pileup, Byte a1, Byte a2) {
-    Multiset<Byte> rawBaseCounts = pileup.getBaseCounts();
-    return new DeNovoResult.Sample(
-        id, rawBaseCounts.size(), rawBaseCounts.count(a1), rawBaseCounts.count(a2));
+  private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
+    return new DeNovoResult.Sample(id, pileup.getDepth());
   }
 
-  private boolean looksDenovo(Position position, Multiset<Byte> childBaseCounts) {
-    return ImmutableList.of(p1Pileups, p2Pileups)
-        .stream()
-        .map(c -> c.getUnchecked(position))
-        .map(Pileup::getBaseCounts)
-        .map(TrioEvaluator::passingBaseCounts)
-        .map(Multiset::elementSet)
-        .map(p -> Sets.difference(childBaseCounts.elementSet(), p))
-        .noneMatch(Set::isEmpty);
-  }
-
-  private static Multiset<Byte> passingBaseCounts(Multiset<Byte> allBaseCounts) {
-    double totalDepth = allBaseCounts.size();
-    return allBaseCounts
-        .entrySet()
-        .stream()
-        .filter(e -> e.getCount() / totalDepth > MAX_MISCALL_RATIO)
-        .collect(
-            ImmutableMultiset.toImmutableMultiset(
-                Multiset.Entry::getElement, Multiset.Entry::getCount));
+  private boolean looksDenovo(Position position, Depth childDepth) {
+    List<Pileup> parentPileups =
+        ImmutableList.of(p1Pileups, p2Pileups)
+            .stream()
+            .map(c -> c.getUnchecked(position))
+            .collect(ImmutableList.toImmutableList());
+    Set<Byte> parentalAlleles =
+        parentPileups
+            .stream()
+            .map(Pileup::getDepth)
+            .map(Depth::getBiAlleles)
+            .flatMap(Set::stream)
+            .collect(ImmutableSet.toImmutableSet());
+    return parentPileups.stream().allMatch(TrioEvaluator::looksBiallelic)
+        && !Sets.difference(childDepth.getBiAlleles(), parentalAlleles).isEmpty();
   }
 }

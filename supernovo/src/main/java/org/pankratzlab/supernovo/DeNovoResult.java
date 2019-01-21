@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.pankratzlab.supernovo.metrics.Depth;
 import com.google.common.collect.ImmutableList;
 
 public class DeNovoResult {
@@ -14,17 +15,36 @@ public class DeNovoResult {
     POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
-    CHILD_DEPTH("Depth", r -> r.getChild().getDepth()),
-    CHILD_A1_DEPTH("Allele_1_Depth", r -> r.getChild().getA1Depth()),
-    CHILD_A2_DEPTH("Allele_2_Depth", r -> r.getChild().getA2Depth()),
+    CHILD_RAW_DEPTH("Depth", r -> r.getChild().getDepth().rawTotalDepth()),
+    CHILD_A1_RAW_DEPTH("Allele_1_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA1())),
+    CHILD_A2_RAW_DEPTH("Allele_2_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA2())),
+    CHILD_WEIGHTED_DEPTH("Depth", r -> r.getChild().getDepth().weightedTotalDepth()),
+    CHILD_A1_WEIGHTED_DEPTH(
+        "Allele_1_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA1())),
+    CHILD_A2_WEIGHTED_DEPTH(
+        "Allele_2_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA2())),
     P1_ID("ID", r -> r.getParent1().getId()),
-    P1_DEPTH("Parent1_Depth", r -> r.getParent1().getDepth()),
-    P1_A1_DEPTH("Parent1_Allele_1_Depth", r -> r.getParent1().getA1Depth()),
-    P1_A2_DEPTH("Parent1_Allele_2_Depth", r -> r.getParent1().getA2Depth()),
+    P1_RAW_DEPTH("Parent1_Depth", r -> r.getParent1().getDepth().rawTotalDepth()),
+    P1_A1_RAW_DEPTH(
+        "Parent1_Allele_1_Depth", r -> r.getParent1().getDepth().allelicRawDepth(r.getA1())),
+    P1_A2_RAW_DEPTH(
+        "Parent1_Allele_2_Depth", r -> r.getParent1().getDepth().allelicRawDepth(r.getA2())),
+    P1_WEIGHTED_DEPTH("Parent1_Depth", r -> r.getParent1().getDepth().weightedTotalDepth()),
+    P1_A1_WEIGHTED_DEPTH(
+        "Parent1_Allele_1_Depth", r -> r.getParent1().getDepth().allelicWeightedDepth(r.getA1())),
+    P1_A2_WEIGHTED_DEPTH(
+        "Parent1_Allele_2_Depth", r -> r.getParent1().getDepth().allelicWeightedDepth(r.getA2())),
     P2_ID("ID", r -> r.getParent2().getId()),
-    P2_DEPTH("Parent2_Depth", r -> r.getParent2().getDepth()),
-    P2_A1_DEPTH("Parent2_Allele_1_Depth", r -> r.getParent2().getA1Depth()),
-    P2_A2_DEPTH("Parent2_Allele_2_Depth", r -> r.getParent2().getA2Depth());
+    P2_RAW_DEPTH("Parent2_Depth", r -> r.getParent2().getDepth().rawTotalDepth()),
+    P2_A1_RAW_DEPTH(
+        "Parent2_Allele_1_Depth", r -> r.getParent2().getDepth().allelicRawDepth(r.getA1())),
+    P2_A2_RAW_DEPTH(
+        "Parent2_Allele_2_Depth", r -> r.getParent2().getDepth().allelicRawDepth(r.getA2())),
+    P2_WEIGHTED_DEPTH("Parent2_Depth", r -> r.getParent2().getDepth().weightedTotalDepth()),
+    P2_A1_WEIGHTED_DEPTH(
+        "Parent2_Allele_1_Depth", r -> r.getParent2().getDepth().allelicWeightedDepth(r.getA1())),
+    P2_A2_WEIGHTED_DEPTH(
+        "Parent2_Allele_2_Depth", r -> r.getParent2().getDepth().allelicWeightedDepth(r.getA2()));
 
     private static final String DELIM = "\t";
 
@@ -59,22 +79,16 @@ public class DeNovoResult {
   public static class Sample {
 
     private final String id;
-    private final int depth;
-    private final int a1Depth;
-    private final int a2Depth;
+    private final Depth depth;
 
     /**
      * @param id
      * @param depth
-     * @param a1Depth
-     * @param a2Depth
      */
-    public Sample(String id, int depth, int a1Depth, int a2Depth) {
+    public Sample(String id, Depth depth) {
       super();
       this.id = id;
       this.depth = depth;
-      this.a1Depth = a1Depth;
-      this.a2Depth = a2Depth;
     }
 
     /** @return the id */
@@ -83,31 +97,17 @@ public class DeNovoResult {
     }
 
     /** @return the depth */
-    public int getDepth() {
+    public Depth getDepth() {
       return depth;
-    }
-
-    /** @return the a1Depth */
-    public int getA1Depth() {
-      return a1Depth;
-    }
-
-    /** @return the a2Depth */
-    public int getA2Depth() {
-      return a2Depth;
     }
   }
 
   private final Position pos;
-  private final byte a1;
-  private final byte a2;
   private final Sample child;
   private final List<Sample> parents;
 
-  public DeNovoResult(Position pos, byte a1, byte a2, Sample child, Sample p1, Sample p2) {
+  public DeNovoResult(Position pos, Sample child, Sample p1, Sample p2) {
     this.pos = pos;
-    this.a1 = a1;
-    this.a2 = a2;
     this.child = child;
     this.parents = ImmutableList.of(p1, p2);
   }
@@ -119,12 +119,12 @@ public class DeNovoResult {
 
   /** @return the a1 */
   public byte getA1() {
-    return a1;
+    return child.getDepth().getA1().orElseThrow(IllegalStateException::new);
   }
 
   /** @return the a2 */
   public byte getA2() {
-    return a2;
+    return child.getDepth().getA2().orElseThrow(IllegalStateException::new);
   }
 
   /** @return the child */
