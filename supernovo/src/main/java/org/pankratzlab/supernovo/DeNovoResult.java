@@ -15,6 +15,7 @@ public class DeNovoResult {
     POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
+    SUPERNOVO("SuperNovo", DeNovoResult::superNovo),
     HAP_CONCORDANCE("Haplotype_Concordance", DeNovoResult::meanConcordance),
     OVERLAP_DENOVOS("De_Novo_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherDeNovos()),
     OVERLAP_TRIALLELICS(
@@ -167,5 +168,11 @@ public class DeNovoResult {
         .mapToDouble(Double::valueOf)
         .summaryStatistics()
         .getAverage();
+  }
+
+  public boolean superNovo() {
+    return hapResults.getOtherDeNovos() == 0
+        && meanConcordance() >= 0.95
+        && hapResults.getOtherTriallelics() == 0;
   }
 }
