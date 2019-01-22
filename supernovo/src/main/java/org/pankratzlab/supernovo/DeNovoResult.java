@@ -30,7 +30,7 @@ public class DeNovoResult {
         "Allele_1_Weighted_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA1())),
     CHILD_A2_WEIGHTED_DEPTH(
         "Allele_2_Weighted_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA2())),
-    P1_ID("ID", r -> r.getParent1().getId()),
+    P1_ID("Parent1_ID", r -> r.getParent1().getId()),
     P1_RAW_DEPTH("Parent1_Raw_Depth", r -> r.getParent1().getDepth().rawTotalDepth()),
     P1_A1_RAW_DEPTH(
         "Parent1_Allele_1_Raw_Depth", r -> r.getParent1().getDepth().allelicRawDepth(r.getA1())),
@@ -44,7 +44,7 @@ public class DeNovoResult {
     P1_A2_WEIGHTED_DEPTH(
         "Parent1_Allele_2_Weighted_Depth",
         r -> r.getParent1().getDepth().allelicWeightedDepth(r.getA2())),
-    P2_ID("ID", r -> r.getParent2().getId()),
+    P2_ID("Parent2_ID", r -> r.getParent2().getId()),
     P2_RAW_DEPTH("Parent2_Raw_Depth", r -> r.getParent2().getDepth().rawTotalDepth()),
     P2_A1_RAW_DEPTH(
         "Parent2_Allele_1_Raw_Depth", r -> r.getParent2().getDepth().allelicRawDepth(r.getA1())),
