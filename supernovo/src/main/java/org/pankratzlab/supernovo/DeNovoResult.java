@@ -15,15 +15,7 @@ public class DeNovoResult {
     POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
-    HAP_CONCORDANCE(
-        "Haplotype_Concordance",
-        r ->
-            r.getHapResults()
-                .getConcordances()
-                .stream()
-                .mapToDouble(Double::valueOf)
-                .summaryStatistics()
-                .getAverage()),
+    HAP_CONCORDANCE("Haplotype_Concordance", DeNovoResult::meanConcordance),
     OVERLAP_DENOVOS("De_Novo_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherDeNovos()),
     OVERLAP_TRIALLELICS(
         "Triallelic_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherTriallelics()),
@@ -165,5 +157,15 @@ public class DeNovoResult {
   /** @return the hapResults */
   public HaplotypeEvaluator.Result getHapResults() {
     return hapResults;
+  }
+
+  public double meanConcordance() {
+    if (getHapResults().getConcordances().isEmpty()) return 1.0;
+    return getHapResults()
+        .getConcordances()
+        .stream()
+        .mapToDouble(Double::valueOf)
+        .summaryStatistics()
+        .getAverage();
   }
 }
