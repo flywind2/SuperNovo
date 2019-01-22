@@ -74,7 +74,7 @@ public class Depth {
   }
 
   public double allelicWeightedDepth(byte allele) {
-    return pileup.getWeightedBaseCounts().get(allele);
+    return pileup.getWeightedBaseCounts().getOrDefault(allele, 0.0);
   }
 
   public double allelicWeightedDepth(Allele allele) {
