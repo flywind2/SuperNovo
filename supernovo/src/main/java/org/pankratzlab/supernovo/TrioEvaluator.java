@@ -128,15 +128,14 @@ public class TrioEvaluator {
   }
 
   public static boolean moreThanTwoViableAlleles(Pileup pileup) {
-    Depth depth = pileup.getDepth();
     return pileup
-        .getWeightedBaseCounts()
-        .entrySet()
-        .stream()
-        .filter(e -> !depth.getBiAlleles().contains(e.getKey()))
-        .mapToDouble(Map.Entry::getValue)
-        .map(d -> d / depth.weightedTotalDepth())
-        .anyMatch(f -> f > MAX_MISCALL_RATIO);
+            .getWeightedBaseFractions()
+            .entrySet()
+            .stream()
+            .mapToDouble(Map.Entry::getValue)
+            .filter(f -> f > MAX_MISCALL_RATIO)
+            .count()
+        > 2;
   }
 
   private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
@@ -148,11 +147,12 @@ public class TrioEvaluator {
     Set<Byte> parentalAlleles =
         parentPileups
             .stream()
-            .map(Pileup::getDepth)
-            .map(Depth::getBiAlleles)
+            .map(Pileup::getWeightedBaseFractions)
+            .map(Map::entrySet)
             .flatMap(Set::stream)
+            .filter(e -> e.getValue() > MAX_MISCALL_RATIO)
+            .map(Map.Entry::getKey)
             .collect(ImmutableSet.toImmutableSet());
-    return parentPileups.stream().allMatch(TrioEvaluator::looksBiallelic)
-        && !Sets.difference(childPileup.getDepth().getBiAlleles(), parentalAlleles).isEmpty();
+    return !Sets.difference(childPileup.getDepth().getBiAlleles(), parentalAlleles).isEmpty();
   }
 }

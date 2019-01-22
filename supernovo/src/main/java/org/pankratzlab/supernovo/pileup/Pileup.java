@@ -14,6 +14,12 @@ public interface Pileup {
    */
   public ImmutableMap<Byte, Double> getWeightedBaseCounts();
 
+  /**
+   * @return Map from byte value of base to weighted fraction of total weighted depth for that base,
+   *     iteration order is in descending order of weighted base fraction
+   */
+  public ImmutableMap<Byte, Double> getWeightedBaseFractions();
+
   /** @return Multiset of byte values of bases */
   public ImmutableMultiset<Byte> getBaseCounts();
 

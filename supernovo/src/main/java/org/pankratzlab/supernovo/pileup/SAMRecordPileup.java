@@ -77,4 +77,11 @@ public class SAMRecordPileup extends AbstractPileup {
   public ImmutableList<SAMRecord> getRecords() {
     return queriedRecords;
   }
+
+  @Override
+  public ImmutableMap<Byte, Double> getWeightedBaseFractions() {
+    final double weightedDepth =
+        weightedBaseCounts.values().stream().mapToDouble(Double::valueOf).sum();
+    return ImmutableMap.copyOf(Maps.transformValues(weightedBaseCounts, c -> c / weightedDepth));
+  }
 }
