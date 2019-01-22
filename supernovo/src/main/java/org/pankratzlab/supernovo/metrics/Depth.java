@@ -93,4 +93,8 @@ public class Depth {
   public int allelicRawDepth(Allele allele) {
     return allele.getAllele(this).map(this::allelicRawDepth).orElse(Integer.valueOf(0)).intValue();
   }
+
+  public ImmutableSet<Integer> allelicRecords(Allele allele) {
+    return allele.getAllele(this).map(pileup.getRecordsByBase()::get).orElse(ImmutableSet.of());
+  }
 }
