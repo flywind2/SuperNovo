@@ -58,11 +58,19 @@ public class TrioEvaluator {
     this.parent2ID = parent2ID;
 
     this.childPileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(child, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(
+                pos -> new SAMRecordPileup(new SAMPositionOverlap(child, pos).getRecords(), pos)));
     this.p1Pileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(parent1, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(
+                pos ->
+                    new SAMRecordPileup(new SAMPositionOverlap(parent1, pos).getRecords(), pos)));
     this.p2Pileups =
-        PILEUP_CACHE_BUILDER.build(CacheLoader.from(pos -> new SAMRecordPileup(parent2, pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(
+                pos ->
+                    new SAMRecordPileup(new SAMPositionOverlap(parent2, pos).getRecords(), pos)));
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
@@ -89,7 +97,8 @@ public class TrioEvaluator {
 
   private Optional<DeNovoResult> evaluate(Position pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
-    if (looksBiallelic(childPile) && looksDenovo(pos, childPile.getDepth())) {
+    if (looksBiallelic(childPile)
+        && looksDenovo(childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))) {
       return Optional.of(
           new DeNovoResult(
               pos,
@@ -100,33 +109,36 @@ public class TrioEvaluator {
     return Optional.empty();
   }
 
-  private static boolean looksBiallelic(Pileup pileup) {
-    Depth depth = pileup.getDepth();
+  public static boolean looksBiallelic(Pileup pileup) {
+    return looksVariant(pileup.getDepth()) && !moreThanTwoViableAlleles(pileup);
+  }
+
+  public static boolean looksVariant(Depth depth) {
     return depth.getBiAlleles().size() == 2
         && depth.weightedBiallelicDepth() >= MIN_DEPTH
-        && pileup
-            .getWeightedBaseCounts()
-            .entrySet()
-            .stream()
-            .filter(e -> !depth.getBiAlleles().contains(e.getKey()))
-            .mapToDouble(Map.Entry::getValue)
-            .map(d -> d / depth.weightedTotalDepth())
-            .allMatch(f -> f <= MAX_MISCALL_RATIO)
         && Arrays.stream(Depth.Allele.values())
             .mapToDouble(depth::allelicWeightedDepth)
             .allMatch(d -> d >= MIN_ALLELIC_DEPTH);
+  }
+
+  public static boolean moreThanTwoViableAlleles(Pileup pileup) {
+    Depth depth = pileup.getDepth();
+    return pileup
+        .getWeightedBaseCounts()
+        .entrySet()
+        .stream()
+        .filter(e -> !depth.getBiAlleles().contains(e.getKey()))
+        .mapToDouble(Map.Entry::getValue)
+        .map(d -> d / depth.weightedTotalDepth())
+        .anyMatch(f -> f > MAX_MISCALL_RATIO);
   }
 
   private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
     return new DeNovoResult.Sample(id, pileup.getDepth());
   }
 
-  private boolean looksDenovo(Position position, Depth childDepth) {
-    List<Pileup> parentPileups =
-        ImmutableList.of(p1Pileups, p2Pileups)
-            .stream()
-            .map(c -> c.getUnchecked(position))
-            .collect(ImmutableList.toImmutableList());
+  public static boolean looksDenovo(Pileup childPileup, Pileup p1Pileup, Pileup p2Pileup) {
+    List<Pileup> parentPileups = ImmutableList.of(p1Pileup, p2Pileup);
     Set<Byte> parentalAlleles =
         parentPileups
             .stream()
@@ -135,6 +147,6 @@ public class TrioEvaluator {
             .flatMap(Set::stream)
             .collect(ImmutableSet.toImmutableSet());
     return parentPileups.stream().allMatch(TrioEvaluator::looksBiallelic)
-        && !Sets.difference(childDepth.getBiAlleles(), parentalAlleles).isEmpty();
+        && !Sets.difference(childPileup.getDepth().getBiAlleles(), parentalAlleles).isEmpty();
   }
 }
