@@ -102,6 +102,9 @@ public class TrioEvaluator {
       return Optional.of(
           new DeNovoResult(
               pos,
+              new HaplotypeEvaluator(
+                      pos, childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))
+                  .haplotypeConcordance(),
               generateSample(childID, childPile),
               generateSample(parent1ID, p1Pileups.getUnchecked(pos)),
               generateSample(parent2ID, p2Pileups.getUnchecked(pos))));

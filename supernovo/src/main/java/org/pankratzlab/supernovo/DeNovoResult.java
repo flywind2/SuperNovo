@@ -15,6 +15,18 @@ public class DeNovoResult {
     POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
+    HAP_CONCORDANCE(
+        "Haplotype_Concordance",
+        r ->
+            r.getHapResults()
+                .getConcordances()
+                .stream()
+                .mapToDouble(Double::valueOf)
+                .summaryStatistics()
+                .getAverage()),
+    OVERLAP_DENOVOS("De_Novo_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherDeNovos()),
+    OVERLAP_TRIALLELICS(
+        "Triallelic_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherTriallelics()),
     CHILD_RAW_DEPTH("Depth", r -> r.getChild().getDepth().rawTotalDepth()),
     CHILD_A1_RAW_DEPTH("Allele_1_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA1())),
     CHILD_A2_RAW_DEPTH("Allele_2_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA2())),
@@ -103,11 +115,14 @@ public class DeNovoResult {
   }
 
   private final Position pos;
+  private final HaplotypeEvaluator.Result hapResults;
   private final Sample child;
   private final List<Sample> parents;
 
-  public DeNovoResult(Position pos, Sample child, Sample p1, Sample p2) {
+  public DeNovoResult(
+      Position pos, HaplotypeEvaluator.Result hapResults, Sample child, Sample p1, Sample p2) {
     this.pos = pos;
+    this.hapResults = hapResults;
     this.child = child;
     this.parents = ImmutableList.of(p1, p2);
   }
@@ -145,5 +160,10 @@ public class DeNovoResult {
   /** @return the parent2 */
   public Sample getParent2() {
     return parents.get(1);
+  }
+
+  /** @return the hapResults */
+  public HaplotypeEvaluator.Result getHapResults() {
+    return hapResults;
   }
 }
