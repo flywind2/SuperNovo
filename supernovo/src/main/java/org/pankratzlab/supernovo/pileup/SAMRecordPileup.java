@@ -1,17 +1,13 @@
 package org.pankratzlab.supernovo.pileup;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.stream.Collector;
 import org.pankratzlab.supernovo.Position;
 import org.pankratzlab.supernovo.utilities.Phred;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import htsjdk.samtools.SAMRecord;
 
@@ -24,38 +20,26 @@ public class SAMRecordPileup extends AbstractPileup {
   public SAMRecordPileup(ImmutableList<SAMRecord> queriedRecords, Position position) {
     super();
     ImmutableSetMultimap.Builder<Byte, Integer> basePilesBuilder = ImmutableSetMultimap.builder();
-    ListMultimap<Byte, Integer> basePhreds = ArrayListMultimap.create();
+    Map<Byte, Double> weightedDepth = Maps.newHashMap();
     for (int i = 0; i < queriedRecords.size(); i++) {
       SAMRecord samRecord = queriedRecords.get(i);
       int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
       if (readPos != -1) {
         Byte base = samRecord.getReadBases()[readPos];
         basePilesBuilder.put(base, i);
-        basePhreds.put(base, Integer.valueOf(samRecord.getBaseQualities()[readPos]));
+        double accuracy =
+            Phred.getAccuracy(samRecord.getBaseQualities()[readPos])
+                * Phred.getAccuracy(samRecord.getMappingQuality());
+        weightedDepth.put(base, weightedDepth.getOrDefault(base, 0.0) + accuracy);
       }
     }
     basePiles = basePilesBuilder.build();
     weightedBaseCounts =
-        basePhreds
-            .asMap()
-            .entrySet()
-            .stream()
-            .collect(
-                Collector.of(
-                    () ->
-                        ImmutableMap.<Byte, Double>builder()
-                            .orderEntriesByValue(Comparator.reverseOrder()),
-                    (b, e) -> b.put(phredScoresToWeightedDepth(e)),
-                    (b1, b2) -> b1.putAll(b2.build()),
-                    ImmutableMap.Builder::build));
+        ImmutableMap.<Byte, Double>builderWithExpectedSize(weightedDepth.size())
+            .putAll(weightedDepth)
+            .orderEntriesByValue(Comparator.reverseOrder())
+            .build();
     this.queriedRecords = queriedRecords;
-  }
-
-  private static <K> Map.Entry<K, Double> phredScoresToWeightedDepth(
-      Map.Entry<K, Collection<Integer>> phredScores) {
-    return Maps.immutableEntry(
-        phredScores.getKey(),
-        phredScores.getValue().stream().mapToDouble(Phred::getAccuracy).sum());
   }
 
   @Override
