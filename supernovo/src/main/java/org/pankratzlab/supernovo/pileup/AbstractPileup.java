@@ -1,7 +1,6 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.pileup;
 
 import java.util.Optional;
-import org.pankratzlab.supernovo.metrics.Depth;
 
 public abstract class AbstractPileup implements Pileup {
 

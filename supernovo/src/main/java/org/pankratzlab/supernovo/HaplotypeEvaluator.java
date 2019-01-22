@@ -2,7 +2,9 @@ package org.pankratzlab.supernovo;
 
 import java.util.List;
 import java.util.Set;
-import org.pankratzlab.supernovo.metrics.Depth.Allele;
+import org.pankratzlab.supernovo.pileup.Pileup;
+import org.pankratzlab.supernovo.pileup.SAMRecordPileup;
+import org.pankratzlab.supernovo.pileup.Depth.Allele;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 

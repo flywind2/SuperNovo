@@ -1,5 +1,6 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.pileup;
 
+import org.pankratzlab.supernovo.Position;
 import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;

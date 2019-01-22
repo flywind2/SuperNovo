@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.pankratzlab.supernovo.metrics.Depth;
+import org.pankratzlab.supernovo.pileup.Depth;
 import com.google.common.collect.ImmutableList;
 
 public class DeNovoResult {

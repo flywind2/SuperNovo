@@ -1,10 +1,9 @@
-package org.pankratzlab.supernovo.metrics;
+package org.pankratzlab.supernovo.pileup;
 
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import org.pankratzlab.supernovo.Pileup;
 import com.google.common.collect.ImmutableSet;
 
 public class Depth {

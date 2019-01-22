@@ -1,6 +1,5 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.pileup;
 
-import org.pankratzlab.supernovo.metrics.Depth;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;

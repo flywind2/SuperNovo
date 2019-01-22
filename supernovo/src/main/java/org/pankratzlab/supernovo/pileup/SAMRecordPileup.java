@@ -1,9 +1,10 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.pileup;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Collector;
+import org.pankratzlab.supernovo.Position;
 import org.pankratzlab.supernovo.utilities.Phred;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
