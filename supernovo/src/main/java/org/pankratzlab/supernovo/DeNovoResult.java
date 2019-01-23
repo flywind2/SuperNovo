@@ -197,7 +197,10 @@ public class DeNovoResult {
   }
 
   public boolean superNovo() {
-    return hapResults.getOtherDeNovos() == 0
+    return TrioEvaluator.looksBiallelic(child.getPileup())
+        && TrioEvaluator.looksDenovo(
+            getChild().getPileup(), getParent1().getPileup(), getParent2().getPileup())
+        && hapResults.getOtherDeNovos() == 0
         && meanConcordance() >= 0.95
         && hapResults.getOtherTriallelics() == 0;
   }

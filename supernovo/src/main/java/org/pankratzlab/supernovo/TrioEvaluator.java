@@ -101,8 +101,7 @@ public class TrioEvaluator {
 
   private Optional<DeNovoResult> evaluate(Position pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
-    if (looksBiallelic(childPile)
-        && looksDenovo(childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))) {
+    if (looksVariant(childPile.getDepth())) {
       return Optional.of(
           new DeNovoResult(
               pos,
