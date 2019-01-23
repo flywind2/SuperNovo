@@ -32,6 +32,7 @@ public class TrioEvaluator {
   private static final int MIN_DEPTH = 10;
   private static final int MIN_ALLELIC_DEPTH = 4;
   private static final double MAX_MISCALL_RATIO = 0.05;
+  private static final double MAX_MISCALL_WEIGHT = 1.0;
   private static final CacheBuilder<Object, Object> PILEUP_CACHE_BUILDER =
       CacheBuilder.newBuilder().maximumSize(READ_LENGTH * 2L);
 
@@ -128,14 +129,18 @@ public class TrioEvaluator {
   }
 
   public static boolean moreThanTwoViableAlleles(Pileup pileup) {
+    return possibleAlleles(pileup).size() > 2;
+  }
+
+  private static Set<Byte> possibleAlleles(Pileup pileup) {
     return pileup
-            .getWeightedBaseFractions()
-            .entrySet()
-            .stream()
-            .mapToDouble(Map.Entry::getValue)
-            .filter(f -> f > MAX_MISCALL_RATIO)
-            .count()
-        > 2;
+        .getWeightedBaseCounts()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue() > MAX_MISCALL_WEIGHT)
+        .map(Map.Entry::getKey)
+        .filter(b -> pileup.getWeightedBaseFractions().get(b) > MAX_MISCALL_RATIO)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
@@ -147,11 +152,8 @@ public class TrioEvaluator {
     Set<Byte> parentalAlleles =
         parentPileups
             .stream()
-            .map(Pileup::getWeightedBaseFractions)
-            .map(Map::entrySet)
+            .map(TrioEvaluator::possibleAlleles)
             .flatMap(Set::stream)
-            .filter(e -> e.getValue() > MAX_MISCALL_RATIO)
-            .map(Map.Entry::getKey)
             .collect(ImmutableSet.toImmutableSet());
     return !Sets.difference(childPileup.getDepth().getBiAlleles(), parentalAlleles).isEmpty();
   }
