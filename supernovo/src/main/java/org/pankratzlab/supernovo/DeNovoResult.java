@@ -16,6 +16,8 @@ public class DeNovoResult {
     POS("Position", r -> r.getPos().getPosition()),
     A1("Allele_1", r -> (char) r.getA1()),
     A2("Allele_2", r -> (char) r.getA2()),
+    BIALLELIC("Biallelic_Heterozygote", DeNovoResult::isBiallelic),
+    DENOVO("DeNovo", DeNovoResult::isDeNovo),
     SUPERNOVO("SuperNovo", DeNovoResult::superNovo),
     HAP_CONCORDANCE("Haplotype_Concordance", DeNovoResult::meanConcordance),
     OVERLAP_DENOVOS("De_Novo_Variants_Overlapping_Reads", r -> r.getHapResults().getOtherDeNovos()),
@@ -135,6 +137,8 @@ public class DeNovoResult {
 
   private final Position pos;
   private final HaplotypeEvaluator.Result hapResults;
+  private final boolean biallelic;
+  private final boolean deNovo;
   private final Sample child;
   private final List<Sample> parents;
 
@@ -144,6 +148,8 @@ public class DeNovoResult {
     this.hapResults = hapResults;
     this.child = child;
     this.parents = ImmutableList.of(p1, p2);
+    this.biallelic = TrioEvaluator.looksBiallelic(child.getPileup());
+    this.deNovo = TrioEvaluator.looksDenovo(child.getPileup(), p1.getPileup(), p2.getPileup());
   }
 
   /** @return the pos */
@@ -196,10 +202,19 @@ public class DeNovoResult {
         .getAverage();
   }
 
+  /** @return the biallelic */
+  public boolean isBiallelic() {
+    return biallelic;
+  }
+
+  /** @return the deNovo */
+  public boolean isDeNovo() {
+    return deNovo;
+  }
+
   public boolean superNovo() {
-    return TrioEvaluator.looksBiallelic(child.getPileup())
-        && TrioEvaluator.looksDenovo(
-            getChild().getPileup(), getParent1().getPileup(), getParent2().getPileup())
+    return biallelic
+        && deNovo
         && hapResults.getOtherDeNovos() == 0
         && meanConcordance() >= 0.95
         && hapResults.getOtherTriallelics() == 0;
