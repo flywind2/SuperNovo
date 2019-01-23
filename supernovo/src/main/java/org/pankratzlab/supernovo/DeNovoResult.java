@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.pankratzlab.supernovo.pileup.Depth;
+import org.pankratzlab.supernovo.pileup.Pileup;
 import com.google.common.collect.ImmutableList;
 
 public class DeNovoResult {
@@ -25,6 +26,18 @@ public class DeNovoResult {
         "Allele_1_Raw_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA1())),
     CHILD_A2_RAW_DEPTH(
         "Allele_2_Raw_Depth", r -> r.getChild().getDepth().allelicRawDepth(r.getA2())),
+    A1_CLIPPED_READS(
+        "Allele_1_Clipped_Reads",
+        r -> r.getChild().getPileup().getClippedReadCounts().count(r.getA1())),
+    A2_CLIPPED_READS(
+        "Allele_2_Clipped_Reads",
+        r -> r.getChild().getPileup().getClippedReadCounts().count(r.getA1())),
+    A1_UNMAPPED_MATE_READS(
+        "Allele_1_Unmapped_Mate_Reads",
+        r -> r.getChild().getPileup().getUnmappedMateCounts().count(r.getA1())),
+    A2_UNMAPPED_MATE_READS(
+        "Allele_2_Unmapped_Mate_Reads",
+        r -> r.getChild().getPileup().getUnmappedMateCounts().count(r.getA1())),
     CHILD_WEIGHTED_DEPTH("Weighted_Depth", r -> r.getChild().getDepth().weightedTotalDepth()),
     CHILD_A1_WEIGHTED_DEPTH(
         "Allele_1_Weighted_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA1())),
@@ -92,16 +105,16 @@ public class DeNovoResult {
   public static class Sample {
 
     private final String id;
-    private final Depth depth;
+    private final Pileup pileup;
 
     /**
      * @param id
-     * @param depth
+     * @param pileup
      */
-    public Sample(String id, Depth depth) {
+    public Sample(String id, Pileup pileup) {
       super();
       this.id = id;
-      this.depth = depth;
+      this.pileup = pileup;
     }
 
     /** @return the id */
@@ -111,7 +124,12 @@ public class DeNovoResult {
 
     /** @return the depth */
     public Depth getDepth() {
-      return depth;
+      return pileup.getDepth();
+    }
+
+    /** @return the pileup */
+    public Pileup getPileup() {
+      return pileup;
     }
   }
 

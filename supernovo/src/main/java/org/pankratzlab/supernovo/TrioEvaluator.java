@@ -139,7 +139,7 @@ public class TrioEvaluator {
   }
 
   private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
-    return new DeNovoResult.Sample(id, pileup.getDepth());
+    return new DeNovoResult.Sample(id, pileup);
   }
 
   public static boolean looksDenovo(Pileup childPileup, Pileup p1Pileup, Pileup p2Pileup) {

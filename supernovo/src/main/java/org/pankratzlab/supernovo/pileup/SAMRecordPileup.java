@@ -16,11 +16,15 @@ public class SAMRecordPileup extends AbstractPileup {
   private final ImmutableSetMultimap<Byte, Integer> basePiles;
   private final ImmutableMap<Byte, Double> weightedBaseCounts;
   private final ImmutableList<SAMRecord> queriedRecords;
+  private final ImmutableMultiset<Byte> clippedReadCounts;
+  private final ImmutableMultiset<Byte> unmappedMateCounts;
 
   public SAMRecordPileup(ImmutableList<SAMRecord> queriedRecords, Position position) {
     super();
     ImmutableSetMultimap.Builder<Byte, Integer> basePilesBuilder = ImmutableSetMultimap.builder();
     Map<Byte, Double> weightedDepth = Maps.newHashMap();
+    ImmutableMultiset.Builder<Byte> clippedReadCountsBuilder = ImmutableMultiset.builder();
+    ImmutableMultiset.Builder<Byte> unmappedMateCountsBuilder = ImmutableMultiset.builder();
     for (int i = 0; i < queriedRecords.size(); i++) {
       SAMRecord samRecord = queriedRecords.get(i);
       int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
@@ -31,6 +35,8 @@ public class SAMRecordPileup extends AbstractPileup {
             Phred.getAccuracy(samRecord.getBaseQualities()[readPos])
                 * Phred.getAccuracy(samRecord.getMappingQuality());
         weightedDepth.put(base, weightedDepth.getOrDefault(base, 0.0) + accuracy);
+        if (samRecord.getCigar().isClipped()) clippedReadCountsBuilder.add(base);
+        if (samRecord.getMateUnmappedFlag()) unmappedMateCountsBuilder.add(base);
       }
     }
     basePiles = basePilesBuilder.build();
@@ -39,6 +45,8 @@ public class SAMRecordPileup extends AbstractPileup {
             .putAll(weightedDepth)
             .orderEntriesByValue(Comparator.reverseOrder())
             .build();
+    clippedReadCounts = clippedReadCountsBuilder.build();
+    unmappedMateCounts = unmappedMateCountsBuilder.build();
     this.queriedRecords = queriedRecords;
   }
 
@@ -60,6 +68,18 @@ public class SAMRecordPileup extends AbstractPileup {
   @Override
   public ImmutableList<SAMRecord> getRecords() {
     return queriedRecords;
+  }
+
+  /** @return the clippedReadCounts */
+  @Override
+  public ImmutableMultiset<Byte> getClippedReadCounts() {
+    return clippedReadCounts;
+  }
+
+  /** @return the unmappedMateCounts */
+  @Override
+  public ImmutableMultiset<Byte> getUnmappedMateCounts() {
+    return unmappedMateCounts;
   }
 
   @Override

@@ -31,4 +31,8 @@ public interface Pileup {
 
   /** @return the {@link Depth} for this {@link Pileup} */
   public Depth getDepth();
+
+  ImmutableMultiset<Byte> getUnmappedMateCounts();
+
+  ImmutableMultiset<Byte> getClippedReadCounts();
 }
