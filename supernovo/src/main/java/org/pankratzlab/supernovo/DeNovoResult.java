@@ -33,13 +33,13 @@ public class DeNovoResult {
         r -> r.getChild().getPileup().getClippedReadCounts().count(r.getA1())),
     A2_CLIPPED_READS(
         "Allele_2_Clipped_Reads",
-        r -> r.getChild().getPileup().getClippedReadCounts().count(r.getA1())),
+        r -> r.getChild().getPileup().getClippedReadCounts().count(r.getA2())),
     A1_UNMAPPED_MATE_READS(
         "Allele_1_Unmapped_Mate_Reads",
         r -> r.getChild().getPileup().getUnmappedMateCounts().count(r.getA1())),
     A2_UNMAPPED_MATE_READS(
         "Allele_2_Unmapped_Mate_Reads",
-        r -> r.getChild().getPileup().getUnmappedMateCounts().count(r.getA1())),
+        r -> r.getChild().getPileup().getUnmappedMateCounts().count(r.getA2())),
     CHILD_WEIGHTED_DEPTH("Weighted_Depth", r -> r.getChild().getDepth().weightedTotalDepth()),
     CHILD_A1_WEIGHTED_DEPTH(
         "Allele_1_Weighted_Depth", r -> r.getChild().getDepth().allelicWeightedDepth(r.getA1())),
