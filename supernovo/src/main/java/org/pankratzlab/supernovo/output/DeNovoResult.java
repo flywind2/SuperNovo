@@ -3,6 +3,7 @@ package org.pankratzlab.supernovo.output;
 import java.util.List;
 import java.util.Optional;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
+import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
 import org.pankratzlab.supernovo.TrioEvaluator;
 import org.pankratzlab.supernovo.pileup.Depth;
@@ -31,7 +32,7 @@ public class DeNovoResult implements OutputFields {
      * @param id
      * @param pileup
      */
-    public Sample(String id, Pileup pileup, Optional<Byte> a1, Optional<Byte> a2) {
+    public Sample(String id, Pileup pileup, Optional<PileAllele> a1, Optional<PileAllele> a2) {
       super();
       this.pileup = pileup;
       Depth depth = pileup.getDepth();
@@ -67,8 +68,10 @@ public class DeNovoResult implements OutputFields {
 
   public final String chr;
   public final int position;
-  public final char allele1;
-  public final char allele2;
+  public final PileAllele refAllele;
+  public final Optional<PileAllele> altAllele;
+  public final Optional<PileAllele> allele1;
+  public final Optional<PileAllele> allele2;
   public final boolean biallelicHeterozygote;
   public final boolean deNovo;
   public final boolean superNovo;
@@ -98,8 +101,10 @@ public class DeNovoResult implements OutputFields {
 
     position = pos.getPosition();
     chr = pos.getContig();
-    allele1 = child.getDepth().getA1().map(b -> (char) b.byteValue()).orElse('.');
-    allele2 = child.getDepth().getA2().map(b -> (char) b.byteValue()).orElse('.');
+    refAllele = pos.getRefAllele();
+    altAllele = pos.getAltAllele();
+    allele1 = child.getDepth().getA1();
+    allele2 = child.getDepth().getA2();
     biallelicHeterozygote = TrioEvaluator.looksBiallelic(child.getPileup());
     deNovo = TrioEvaluator.looksDenovo(child.getPileup(), p1.getPileup(), p2.getPileup());
     if (hapResults.getConcordances().isEmpty()) meanHaplotypeConcordance = 1.0;
