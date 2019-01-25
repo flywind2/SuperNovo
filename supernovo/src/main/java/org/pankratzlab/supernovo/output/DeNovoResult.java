@@ -1,8 +1,11 @@
-package org.pankratzlab.supernovo;
+package org.pankratzlab.supernovo.output;
 
 import java.util.List;
 import java.util.Optional;
-import org.pankratzlab.supernovo.output.OutputFields;
+import org.pankratzlab.supernovo.HaplotypeEvaluator;
+import org.pankratzlab.supernovo.Position;
+import org.pankratzlab.supernovo.TrioEvaluator;
+import org.pankratzlab.supernovo.HaplotypeEvaluator.Result;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import com.google.common.collect.ImmutableList;
