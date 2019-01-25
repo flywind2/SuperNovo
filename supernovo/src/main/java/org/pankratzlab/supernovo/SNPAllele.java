@@ -10,6 +10,11 @@ public class SNPAllele extends AbstractPileAllele {
   private static LoadingCache<Byte, SNPAllele> cache =
       CacheBuilder.newBuilder().softValues().build(CacheLoader.from(SNPAllele::new));
 
+  public static final SNPAllele A = of((byte) 'A');
+  public static final SNPAllele T = of((byte) 'T');
+  public static final SNPAllele C = of((byte) 'C');
+  public static final SNPAllele G = of((byte) 'G');
+
   private final byte base;
 
   /** @param base */
