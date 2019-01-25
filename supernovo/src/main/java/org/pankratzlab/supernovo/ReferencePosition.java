@@ -70,13 +70,14 @@ public class ReferencePosition extends GenomePosition {
         ImmutableList.copyOf(Bytes.asList(ins.getBases()).subList(1, ins.getBases().length)));
   }
 
-  private static ImmutableList<Byte> alleleToBaseList(Allele allele) {
-    ImmutableList.Builder<Byte> baseListBuilder =
-        ImmutableList.builderWithExpectedSize(allele.length());
-    for (byte base : allele.getBases()) {
-      baseListBuilder.add(base);
-    }
-    return baseListBuilder.build();
+  /** @return the refAllele */
+  public PileAllele getRefAllele() {
+    return refAllele;
+  }
+
+  /** @return the altAllele */
+  public Optional<PileAllele> getAltAllele() {
+    return altAllele;
   }
 
   /* (non-Javadoc)
