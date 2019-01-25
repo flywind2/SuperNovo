@@ -27,6 +27,11 @@ public class SNPAllele extends AbstractPileAllele {
     return readPos != -1 && record.getReadBases()[readPos] == base;
   }
 
+  @Override
+  public double weightedDepth(SAMRecord samRecord, int readPos) {
+    return singlePosWeightedDepth(samRecord, readPos);
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

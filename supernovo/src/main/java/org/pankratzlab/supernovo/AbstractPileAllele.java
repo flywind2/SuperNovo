@@ -1,5 +1,8 @@
 package org.pankratzlab.supernovo;
 
+import org.pankratzlab.supernovo.utilities.Phred;
+import htsjdk.samtools.SAMRecord;
+
 public abstract class AbstractPileAllele implements PileAllele {
 
   private final String alleleString;
@@ -13,6 +16,11 @@ public abstract class AbstractPileAllele implements PileAllele {
   @Override
   public String toString() {
     return alleleString;
+  }
+
+  protected static final double singlePosWeightedDepth(SAMRecord samRecord, int readPos) {
+    return Phred.getAccuracy(samRecord.getBaseQualities()[readPos])
+        * Phred.getAccuracy(samRecord.getMappingQuality());
   }
 
   /* (non-Javadoc)

@@ -1,5 +1,6 @@
 package org.pankratzlab.supernovo;
 
+import java.util.stream.IntStream;
 import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.SAMRecord;
 
@@ -18,6 +19,11 @@ public class InsertionAllele extends AbstractPileAllele {
 
     public InsertionAllele getInsertionAllele() {
       return InsertionAllele.this;
+    }
+
+    @Override
+    public double weightedDepth(SAMRecord samRecord, int readPos) {
+      return singlePosWeightedDepth(samRecord, readPos);
     }
 
     /* (non-Javadoc)
@@ -68,6 +74,17 @@ public class InsertionAllele extends AbstractPileAllele {
   @Override
   public boolean supported(final SAMRecord record, final int readPos) {
     return supportType(record, readPos).equals(Support.INSERTION);
+  }
+
+  @Override
+  public double weightedDepth(SAMRecord samRecord, int readPos) {
+    int length = insertedBases.size() + 1;
+    byte[] readBases = samRecord.getReadBases();
+    int limit = Integer.min(readBases.length, readPos + length);
+    return IntStream.range(readPos, limit)
+        .mapToDouble(i -> singlePosWeightedDepth(samRecord, i))
+        .average()
+        .orElseGet(() -> Double.valueOf(0.0));
   }
 
   private Support supportType(final SAMRecord record, final int readPos) {
