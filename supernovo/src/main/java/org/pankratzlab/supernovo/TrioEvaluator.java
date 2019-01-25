@@ -15,7 +15,6 @@ import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionOverlap;
-import org.pankratzlab.supernovo.pileup.SAMRecordPileup;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -68,17 +67,15 @@ public class TrioEvaluator {
     this.childPileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
-                pos -> new SAMRecordPileup(new SAMPositionOverlap(child, pos).getRecords(), pos)));
+                pos -> new Pileup(new SAMPositionOverlap(child, pos).getRecords(), pos)));
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
-                pos ->
-                    new SAMRecordPileup(new SAMPositionOverlap(parent1, pos).getRecords(), pos)));
+                pos -> new Pileup(new SAMPositionOverlap(parent1, pos).getRecords(), pos)));
     this.p2Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
-                pos ->
-                    new SAMRecordPileup(new SAMPositionOverlap(parent2, pos).getRecords(), pos)));
+                pos -> new Pileup(new SAMPositionOverlap(parent2, pos).getRecords(), pos)));
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {

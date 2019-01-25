@@ -5,7 +5,6 @@ import java.util.Optional;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
 import org.pankratzlab.supernovo.ReferencePosition;
 import org.pankratzlab.supernovo.TrioEvaluator;
-import org.pankratzlab.supernovo.HaplotypeEvaluator.Result;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import com.google.common.collect.ImmutableList;
@@ -85,7 +84,11 @@ public class DeNovoResult implements OutputFields {
   private final List<Sample> parents;
 
   public DeNovoResult(
-      ReferencePosition pos, HaplotypeEvaluator.Result hapResults, Sample child, Sample p1, Sample p2) {
+      ReferencePosition pos,
+      HaplotypeEvaluator.Result hapResults,
+      Sample child,
+      Sample p1,
+      Sample p2) {
     this.pos = pos;
     this.hapResults = hapResults;
     this.child = child;

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Set;
 import org.pankratzlab.supernovo.pileup.Depth.Allele;
 import org.pankratzlab.supernovo.pileup.Pileup;
-import org.pankratzlab.supernovo.pileup.SAMRecordPileup;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -126,6 +125,6 @@ public class HaplotypeEvaluator {
   }
 
   private static Pileup searchPileup(Pileup base, Position searchPos) {
-    return new SAMRecordPileup(base.getRecords(), searchPos);
+    return new Pileup(base.getRecords(), searchPos);
   }
 }
