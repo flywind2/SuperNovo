@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
 import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
+import org.pankratzlab.supernovo.SNPAllele;
 import org.pankratzlab.supernovo.TrioEvaluator;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
@@ -20,6 +21,10 @@ public class DeNovoResult implements OutputFields {
     public final Optional<Integer> altRawDepth;
     public final int a1RawDepth;
     public final int a2RawDepth;
+    public final int a_rawDepth;
+    public final int t_rawDepth;
+    public final int c_rawDepth;
+    public final int g_rawDepth;
     public final int a1ClippedReads;
     public final int a2ClippedReads;
     public final int a1UnmappedMateReads;
@@ -29,6 +34,10 @@ public class DeNovoResult implements OutputFields {
     public final Optional<Double> altWeightedDepth;
     public final double a1WeightedDepth;
     public final double a2WeightedDepth;
+    public final double a_weightedDepth;
+    public final double t_weightedDepth;
+    public final double c_weightedDepth;
+    public final double g_weightedDepth;
 
     private final Pileup pileup;
 
@@ -55,6 +64,10 @@ public class DeNovoResult implements OutputFields {
       altRawDepth = alt.map(depth::allelicRawDepth);
       a1RawDepth = a1.map(depth::allelicRawDepth).orElse(0);
       a2RawDepth = a2.map(depth::allelicRawDepth).orElse(0);
+      a_rawDepth = depth.allelicRawDepth(SNPAllele.A);
+      t_rawDepth = depth.allelicRawDepth(SNPAllele.T);
+      c_rawDepth = depth.allelicRawDepth(SNPAllele.C);
+      g_rawDepth = depth.allelicRawDepth(SNPAllele.G);
       a1ClippedReads = a1.map(pileup.getClippedReadCounts()::count).orElse(0);
       a2ClippedReads = a2.map(pileup.getClippedReadCounts()::count).orElse(0);
       a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
@@ -64,6 +77,10 @@ public class DeNovoResult implements OutputFields {
       altWeightedDepth = alt.map(depth::allelicWeightedDepth);
       a1WeightedDepth = a1.map(depth::allelicWeightedDepth).orElse(0.0);
       a2WeightedDepth = a2.map(depth::allelicWeightedDepth).orElse(0.0);
+      a_weightedDepth = depth.allelicWeightedDepth(SNPAllele.A);
+      t_weightedDepth = depth.allelicWeightedDepth(SNPAllele.T);
+      c_weightedDepth = depth.allelicWeightedDepth(SNPAllele.C);
+      g_weightedDepth = depth.allelicWeightedDepth(SNPAllele.G);
     }
 
     /** @return the id */
