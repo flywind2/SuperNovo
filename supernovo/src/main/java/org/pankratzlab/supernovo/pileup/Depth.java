@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import org.pankratzlab.supernovo.PileAllele;
 import com.google.common.collect.ImmutableSet;
 
 public class Depth {
@@ -12,31 +13,31 @@ public class Depth {
     A1(Depth::getA1),
     A2(Depth::getA2);
 
-    private final Function<Depth, Optional<Byte>> getterFunc;
+    private final Function<Depth, Optional<PileAllele>> getterFunc;
 
     /** @param getterFunc */
-    private Allele(Function<Depth, Optional<Byte>> getterFunc) {
+    private Allele(Function<Depth, Optional<PileAllele>> getterFunc) {
       this.getterFunc = getterFunc;
     }
 
-    private Optional<Byte> getAllele(Depth depth) {
+    private Optional<PileAllele> getAllele(Depth depth) {
       return getterFunc.apply(depth);
     }
   }
 
   private final Pileup pileup;
-  private final Optional<Byte> a1;
-  private final Optional<Byte> a2;
-  private final Set<Byte> biAlleles;
+  private final Optional<PileAllele> a1;
+  private final Optional<PileAllele> a2;
+  private final Set<PileAllele> biAlleles;
 
   /** @param pileup */
   public Depth(Pileup pileup) {
     super();
     this.pileup = pileup;
-    Iterator<Byte> alleleIter = pileup.getWeightedBaseCounts().keySet().iterator();
+    Iterator<PileAllele> alleleIter = pileup.getWeightedBaseCounts().keySet().iterator();
     a1 = Optional.ofNullable(alleleIter.hasNext() ? alleleIter.next() : null);
     a2 = Optional.ofNullable(alleleIter.hasNext() ? alleleIter.next() : null);
-    ImmutableSet.Builder<Byte> allelesBuilder = ImmutableSet.builderWithExpectedSize(2);
+    ImmutableSet.Builder<PileAllele> allelesBuilder = ImmutableSet.builderWithExpectedSize(2);
     a1.ifPresent(allelesBuilder::add);
     a2.ifPresent(allelesBuilder::add);
     biAlleles = allelesBuilder.build();
@@ -59,21 +60,21 @@ public class Depth {
   }
 
   /** @return the a1 */
-  public Optional<Byte> getA1() {
+  public Optional<PileAllele> getA1() {
     return a1;
   }
 
   /** @return the a2 */
-  public Optional<Byte> getA2() {
+  public Optional<PileAllele> getA2() {
     return a2;
   }
 
   /** @return the biAlleles */
-  public Set<Byte> getBiAlleles() {
+  public Set<PileAllele> getBiAlleles() {
     return biAlleles;
   }
 
-  public double allelicWeightedDepth(byte allele) {
+  public double allelicWeightedDepth(PileAllele allele) {
     return pileup.getWeightedBaseCounts().getOrDefault(allele, 0.0);
   }
 
@@ -85,7 +86,7 @@ public class Depth {
         .doubleValue();
   }
 
-  public int allelicRawDepth(byte allele) {
+  public int allelicRawDepth(PileAllele allele) {
     return pileup.getBaseCounts().count(allele);
   }
 

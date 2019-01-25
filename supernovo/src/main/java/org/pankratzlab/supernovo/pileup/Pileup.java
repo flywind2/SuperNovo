@@ -1,10 +1,13 @@
 package org.pankratzlab.supernovo.pileup;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.pankratzlab.supernovo.GenomePosition;
-import org.pankratzlab.supernovo.utilities.Phred;
+import org.pankratzlab.supernovo.PileAllele;
+import org.pankratzlab.supernovo.ReferencePosition;
+import org.pankratzlab.supernovo.SNPAllele;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
@@ -14,37 +17,43 @@ import htsjdk.samtools.SAMRecord;
 
 public class Pileup {
 
-  private final ImmutableSetMultimap<Byte, Integer> basePiles;
-  private final ImmutableMap<Byte, Double> weightedBaseCounts;
+  private final ImmutableSetMultimap<PileAllele, Integer> basePiles;
+  private final ImmutableMap<PileAllele, Double> weightedBaseCounts;
   private final ImmutableList<SAMRecord> queriedRecords;
-  private final ImmutableMultiset<Byte> clippedReadCounts;
-  private final ImmutableMultiset<Byte> unmappedMateCounts;
+  private final ImmutableMultiset<PileAllele> clippedReadCounts;
+  private final ImmutableMultiset<PileAllele> unmappedMateCounts;
 
   private Optional<Depth> depth = Optional.empty();
 
   public Pileup(ImmutableList<SAMRecord> queriedRecords, GenomePosition position) {
     super();
-    ImmutableSetMultimap.Builder<Byte, Integer> basePilesBuilder = ImmutableSetMultimap.builder();
-    Map<Byte, Double> weightedDepth = Maps.newHashMap();
-    ImmutableMultiset.Builder<Byte> clippedReadCountsBuilder = ImmutableMultiset.builder();
-    ImmutableMultiset.Builder<Byte> unmappedMateCountsBuilder = ImmutableMultiset.builder();
+    List<PileAllele> queriedAlleles = generateQueriedAlleles(position);
+    ImmutableSetMultimap.Builder<PileAllele, Integer> basePilesBuilder =
+        ImmutableSetMultimap.builder();
+    Map<PileAllele, Double> weightedDepth = Maps.newHashMap();
+    ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder = ImmutableMultiset.builder();
+    ImmutableMultiset.Builder<PileAllele> unmappedMateCountsBuilder = ImmutableMultiset.builder();
     for (int i = 0; i < queriedRecords.size(); i++) {
       SAMRecord samRecord = queriedRecords.get(i);
       int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
       if (readPos != -1) {
-        Byte base = samRecord.getReadBases()[readPos];
-        basePilesBuilder.put(base, i);
-        double accuracy =
-            Phred.getAccuracy(samRecord.getBaseQualities()[readPos])
-                * Phred.getAccuracy(samRecord.getMappingQuality());
-        weightedDepth.put(base, weightedDepth.getOrDefault(base, 0.0) + accuracy);
-        if (samRecord.getCigar().isClipped()) clippedReadCountsBuilder.add(base);
-        if (samRecord.getMateUnmappedFlag()) unmappedMateCountsBuilder.add(base);
+        PileAllele allele =
+            queriedAlleles
+                .stream()
+                .filter(a -> a.supported(samRecord, readPos))
+                .findFirst()
+                .orElseGet(() -> getAppropriateAllele(samRecord, readPos));
+        basePilesBuilder.put(allele, i);
+        weightedDepth.put(
+            allele,
+            weightedDepth.getOrDefault(allele, 0.0) + allele.weightedDepth(samRecord, readPos));
+        if (samRecord.getCigar().isClipped()) clippedReadCountsBuilder.add(allele);
+        if (samRecord.getMateUnmappedFlag()) unmappedMateCountsBuilder.add(allele);
       }
     }
     basePiles = basePilesBuilder.build();
     weightedBaseCounts =
-        ImmutableMap.<Byte, Double>builderWithExpectedSize(weightedDepth.size())
+        ImmutableMap.<PileAllele, Double>builderWithExpectedSize(weightedDepth.size())
             .putAll(weightedDepth)
             .orderEntriesByValue(Comparator.reverseOrder())
             .build();
@@ -53,21 +62,36 @@ public class Pileup {
     this.queriedRecords = queriedRecords;
   }
 
-  /** @return Multiset of byte values of bases */
-  public ImmutableMultiset<Byte> getBaseCounts() {
+  private static PileAllele getAppropriateAllele(SAMRecord samRecord, int readPos) {
+    byte base = samRecord.getReadBases()[readPos];
+    return SNPAllele.of(base);
+  }
+
+  private static ImmutableList<PileAllele> generateQueriedAlleles(GenomePosition pos) {
+    if (!(pos instanceof ReferencePosition)) return ImmutableList.of();
+    ReferencePosition refPos = (ReferencePosition) pos;
+    ImmutableList.Builder<PileAllele> queriedAllelesBuilder =
+        ImmutableList.builderWithExpectedSize(2);
+    queriedAllelesBuilder.add(refPos.getRefAllele());
+    refPos.getAltAllele().ifPresent(queriedAllelesBuilder::add);
+    return queriedAllelesBuilder.build();
+  }
+
+  /** @return Multiset of {@link PileAllele} counts */
+  public ImmutableMultiset<PileAllele> getBaseCounts() {
     return basePiles.keys();
   }
 
   /**
-   * @return Map from byte value of base to weighted depth for that base, iteration order is in
-   *     descending order of weighted base counts
+   * @return Map from {@link PileAllele} to weighted depth for that PileAllele, iteration order is
+   *     in descending order of weighted base counts
    */
-  public ImmutableMap<Byte, Double> getWeightedBaseCounts() {
+  public ImmutableMap<PileAllele, Double> getWeightedBaseCounts() {
     return weightedBaseCounts;
   }
 
-  /** @return Multimap from byte value of bases to index for the piled read */
-  public ImmutableSetMultimap<Byte, Integer> getRecordsByBase() {
+  /** @return Multimap from {@link PileAllele} to index for the piled read */
+  public ImmutableSetMultimap<PileAllele, Integer> getRecordsByBase() {
     return basePiles;
   }
 
@@ -77,20 +101,20 @@ public class Pileup {
   }
 
   /** @return the clippedReadCounts */
-  public ImmutableMultiset<Byte> getClippedReadCounts() {
+  public ImmutableMultiset<PileAllele> getClippedReadCounts() {
     return clippedReadCounts;
   }
 
   /** @return the unmappedMateCounts */
-  public ImmutableMultiset<Byte> getUnmappedMateCounts() {
+  public ImmutableMultiset<PileAllele> getUnmappedMateCounts() {
     return unmappedMateCounts;
   }
 
   /**
-   * @return Map from byte value of base to weighted fraction of total weighted depth for that base,
-   *     iteration order is in descending order of weighted base fraction
+   * @return Map from {@link PileAllele} to weighted fraction of total weighted depth for that
+   *     {@link PileAllele}, iteration order is in descending order of weighted base fraction
    */
-  public ImmutableMap<Byte, Double> getWeightedBaseFractions() {
+  public ImmutableMap<PileAllele, Double> getWeightedBaseFractions() {
     final double weightedDepth =
         weightedBaseCounts.values().stream().mapToDouble(Double::valueOf).sum();
     return ImmutableMap.copyOf(Maps.transformValues(weightedBaseCounts, c -> c / weightedDepth));

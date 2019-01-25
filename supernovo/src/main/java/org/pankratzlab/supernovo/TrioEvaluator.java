@@ -143,7 +143,7 @@ public class TrioEvaluator {
     return possibleAlleles(pileup).size() > 2;
   }
 
-  private static Set<Byte> possibleAlleles(Pileup pileup) {
+  private static Set<PileAllele> possibleAlleles(Pileup pileup) {
     return pileup
         .getWeightedBaseCounts()
         .entrySet()
@@ -161,7 +161,7 @@ public class TrioEvaluator {
 
   public static boolean looksDenovo(Pileup childPileup, Pileup p1Pileup, Pileup p2Pileup) {
     List<Pileup> parentPileups = ImmutableList.of(p1Pileup, p2Pileup);
-    Set<Byte> parentalAlleles =
+    Set<PileAllele> parentalAlleles =
         parentPileups
             .stream()
             .map(TrioEvaluator::possibleAlleles)
