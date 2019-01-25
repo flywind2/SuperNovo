@@ -127,7 +127,6 @@ public class InsertionAllele extends AbstractPileAllele {
     final int prime = 31;
     int result = super.hashCode();
     result = prime * result + ((insertedBases == null) ? 0 : insertedBases.hashCode());
-    result = prime * result + ((nonInsertionAllele == null) ? 0 : nonInsertionAllele.hashCode());
     result = prime * result + ((preInsertionBase == null) ? 0 : preInsertionBase.hashCode());
     return result;
   }
@@ -144,9 +143,6 @@ public class InsertionAllele extends AbstractPileAllele {
     if (insertedBases == null) {
       if (other.insertedBases != null) return false;
     } else if (!insertedBases.equals(other.insertedBases)) return false;
-    if (nonInsertionAllele == null) {
-      if (other.nonInsertionAllele != null) return false;
-    } else if (!nonInsertionAllele.equals(other.nonInsertionAllele)) return false;
     if (preInsertionBase == null) {
       if (other.preInsertionBase != null) return false;
     } else if (!preInsertionBase.equals(other.preInsertionBase)) return false;
