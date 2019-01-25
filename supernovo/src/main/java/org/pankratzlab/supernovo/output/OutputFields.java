@@ -1,6 +1,7 @@
 package org.pankratzlab.supernovo.output;
 
 import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +17,7 @@ public interface OutputFields {
     private Constants() {}
 
     static final String DELIM = "\t";
+    static final String MISSING = ".";
     static final Collector<CharSequence, ?, String> JOIN_COLLECTOR = Collectors.joining(DELIM);
   }
 
@@ -40,6 +42,9 @@ public interface OutputFields {
   default Stream<String> recurseValues(Object value) {
     if (value instanceof OutputFields) {
       return ((OutputFields) value).fieldValues();
+    }
+    if (value instanceof Optional<?>) {
+      return Stream.of(((Optional<?>) value).map(Object::toString).orElse(Constants.MISSING));
     }
     return Stream.of(value.toString());
   }
