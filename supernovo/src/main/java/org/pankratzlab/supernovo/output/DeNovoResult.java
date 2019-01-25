@@ -3,7 +3,7 @@ package org.pankratzlab.supernovo.output;
 import java.util.List;
 import java.util.Optional;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
-import org.pankratzlab.supernovo.Position;
+import org.pankratzlab.supernovo.ReferencePosition;
 import org.pankratzlab.supernovo.TrioEvaluator;
 import org.pankratzlab.supernovo.HaplotypeEvaluator.Result;
 import org.pankratzlab.supernovo.pileup.Depth;
@@ -80,12 +80,12 @@ public class DeNovoResult implements OutputFields {
   public final Sample p1;
   public final Sample p2;
 
-  private final Position pos;
+  private final ReferencePosition pos;
   private final HaplotypeEvaluator.Result hapResults;
   private final List<Sample> parents;
 
   public DeNovoResult(
-      Position pos, HaplotypeEvaluator.Result hapResults, Sample child, Sample p1, Sample p2) {
+      ReferencePosition pos, HaplotypeEvaluator.Result hapResults, Sample child, Sample p1, Sample p2) {
     this.pos = pos;
     this.hapResults = hapResults;
     this.child = child;

@@ -1,12 +1,11 @@
 package org.pankratzlab.supernovo;
 
 import java.util.Optional;
-import htsjdk.variant.variantcontext.VariantContext;
 
 public class Position implements Comparable<Position> {
 
-  private final String contig;
-  private final int position;
+  protected final String contig;
+  protected final int position;
 
   /**
    * @param contig
@@ -16,12 +15,6 @@ public class Position implements Comparable<Position> {
     super();
     this.contig = contig;
     this.position = position;
-  }
-
-  public Position(VariantContext vc) {
-    super();
-    this.contig = vc.getContig();
-    this.position = vc.getStart();
   }
 
   /** @return the contig */
@@ -53,12 +46,20 @@ public class Position implements Comparable<Position> {
 
   @Override
   public int compareTo(Position o) {
-    if (contig.equals(contig)) return Integer.compare(position, o.position);
-    int cmpChrNum =
-        locateChrNumber()
-            .orElse(Integer.MAX_VALUE)
-            .compareTo(o.locateChrNumber().orElse(Integer.MAX_VALUE));
-    if (cmpChrNum != 0) return cmpChrNum;
+    int contigCmp = compareContigs(o);
+    if (contigCmp != 0) return contigCmp;
+    int posCmp = Integer.compare(position, o.position);
+    return posCmp;
+  }
+
+  private int compareContigs(Position o) {
+    if (contig.equals(o.contig)) return 0;
+    Optional<Integer> chrNumeric = locateChrNumber();
+    Optional<Integer> otherChrNumeric = o.locateChrNumber();
+    if (chrNumeric.isPresent() && otherChrNumeric.isPresent())
+      return chrNumeric.get().compareTo(otherChrNumeric.get());
+    if (chrNumeric.isPresent()) return -1;
+    if (otherChrNumeric.isPresent()) return 1;
     return contig.compareTo(o.contig);
   }
 

@@ -1,6 +1,6 @@
 package org.pankratzlab.supernovo.pileup;
 
-import org.pankratzlab.supernovo.Position;
+import org.pankratzlab.supernovo.ReferencePosition;
 import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -10,7 +10,7 @@ public class SAMPositionOverlap {
 
   private final ImmutableList<SAMRecord> records;
 
-  public SAMPositionOverlap(SamReader samReader, Position position) {
+  public SAMPositionOverlap(SamReader samReader, ReferencePosition position) {
     try (SAMRecordIterator iterator =
         samReader.queryOverlapping(
             position.getContig(), position.getPosition(), position.getPosition())) {

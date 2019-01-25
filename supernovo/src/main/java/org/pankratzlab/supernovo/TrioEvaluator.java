@@ -16,11 +16,13 @@ import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionOverlap;
 import org.pankratzlab.supernovo.pileup.SAMRecordPileup;
+import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SamReader;
 import htsjdk.variant.variantcontext.Allele;
@@ -42,9 +44,9 @@ public class TrioEvaluator {
   private final String parent1ID;
   private final String parent2ID;
 
-  private final LoadingCache<Position, Pileup> childPileups;
-  private final LoadingCache<Position, Pileup> p1Pileups;
-  private final LoadingCache<Position, Pileup> p2Pileups;
+  private final LoadingCache<ReferencePosition, Pileup> childPileups;
+  private final LoadingCache<ReferencePosition, Pileup> p1Pileups;
+  private final LoadingCache<ReferencePosition, Pileup> p2Pileups;
 
   /**
    * @param child {@link SamReader} of child to evluate for de novo variants
@@ -86,7 +88,7 @@ public class TrioEvaluator {
           .iterator()
           .stream()
           .filter(this::keepVariant)
-          .map(Position::new)
+          .map(this::generatePosition)
           .map(this::evaluate)
           .filter(Optional::isPresent)
           .map(Optional::get)
@@ -101,7 +103,18 @@ public class TrioEvaluator {
         && geno.getAlleles().stream().mapToInt(Allele::length).allMatch(i -> i == 1);
   }
 
-  private Optional<DeNovoResult> evaluate(Position pos) {
+  private ReferencePosition generatePosition(VariantContext vc) {
+    Allele ref = vc.getReference();
+    Genotype geno = vc.getGenotype(childID);
+    Allele alt =
+        geno.getAlleles()
+            .stream()
+            .filter(Predicates.not(vc.getReference()::equals))
+            .collect(MoreCollectors.onlyElement());
+    return new ReferencePosition(vc, ref, alt);
+  }
+
+  private Optional<DeNovoResult> evaluate(ReferencePosition pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
     if (looksVariant(childPile.getDepth())) {
       return Optional.of(

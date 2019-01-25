@@ -61,7 +61,7 @@ public class HaplotypeEvaluator {
   private static final int HAPLOTYPE_SEARCH_DISTANCE = 150;
   private static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
 
-  private final Position pos;
+  private final ReferencePosition pos;
   private final Pileup child;
   private final Pileup p1;
   private final Pileup p2;
@@ -70,7 +70,7 @@ public class HaplotypeEvaluator {
    * @param p1
    * @param p2
    */
-  public HaplotypeEvaluator(Position pos, Pileup child, Pileup p1, Pileup p2) {
+  public HaplotypeEvaluator(ReferencePosition pos, Pileup child, Pileup p1, Pileup p2) {
     super();
     this.pos = pos;
     this.child = child;
