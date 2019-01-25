@@ -15,6 +15,33 @@ public class InsertionAllele extends AbstractPileAllele {
     public boolean supported(SAMRecord record, int readPos) {
       return InsertionAllele.this.supportType(record, readPos).equals(Support.NO_INSERTION);
     }
+
+    public InsertionAllele getInsertionAllele() {
+      return InsertionAllele.this;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = super.hashCode();
+      result = prime * result + InsertionAllele.this.hashCode();
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) return true;
+      if (!super.equals(obj)) return false;
+      if (!(obj instanceof NonInsertionAllele)) return false;
+      NonInsertionAllele other = (NonInsertionAllele) obj;
+      return getInsertionAllele().equals(other.getInsertionAllele());
+    }
   }
 
   private enum Support {
@@ -73,5 +100,39 @@ public class InsertionAllele extends AbstractPileAllele {
   /** @return a {@link PileAllele} that represents the alternative to this insertion */
   public NonInsertionAllele getNonInsertionAllele() {
     return nonInsertionAllele;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((insertedBases == null) ? 0 : insertedBases.hashCode());
+    result = prime * result + ((nonInsertionAllele == null) ? 0 : nonInsertionAllele.hashCode());
+    result = prime * result + ((preInsertionBase == null) ? 0 : preInsertionBase.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (!super.equals(obj)) return false;
+    if (!(obj instanceof InsertionAllele)) return false;
+    InsertionAllele other = (InsertionAllele) obj;
+    if (insertedBases == null) {
+      if (other.insertedBases != null) return false;
+    } else if (!insertedBases.equals(other.insertedBases)) return false;
+    if (nonInsertionAllele == null) {
+      if (other.nonInsertionAllele != null) return false;
+    } else if (!nonInsertionAllele.equals(other.nonInsertionAllele)) return false;
+    if (preInsertionBase == null) {
+      if (other.preInsertionBase != null) return false;
+    } else if (!preInsertionBase.equals(other.preInsertionBase)) return false;
+    return true;
   }
 }
