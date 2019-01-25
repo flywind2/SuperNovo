@@ -109,6 +109,9 @@ public class DeNovoResult implements OutputFields {
   public final boolean deNovo;
   public final boolean superNovo;
   public final double meanHaplotypeConcordance;
+  public final int overlappingReadsHetCount;
+  public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.95;
+  public final int overlappingReadsDiscordantHetCount;
   public final int overlappingReadsDeNovoCount;
   public final int overlapingReadsThirdAlleleCount;
   public final Sample child;
@@ -149,11 +152,20 @@ public class DeNovoResult implements OutputFields {
               .mapToDouble(Double::valueOf)
               .summaryStatistics()
               .getAverage();
+    overlappingReadsHetCount = hapResults.getConcordances().size();
+    overlappingReadsDiscordantHetCount =
+        (int)
+            hapResults
+                .getConcordances()
+                .stream()
+                .mapToDouble(Double::valueOf)
+                .filter(d -> d < MIN_HAPLOTYPE_CONCORDANCE)
+                .count();
     superNovo =
         biallelicHeterozygote
             && deNovo
             && hapResults.getOtherDeNovos() == 0
-            && meanHaplotypeConcordance >= 0.95
+            && meanHaplotypeConcordance >= MIN_HAPLOTYPE_CONCORDANCE
             && hapResults.getOtherTriallelics() == 0;
     overlappingReadsDeNovoCount = hapResults.getOtherDeNovos();
     overlapingReadsThirdAlleleCount = hapResults.getOtherTriallelics();
