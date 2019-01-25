@@ -1,15 +1,15 @@
 package org.pankratzlab.supernovo;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Bytes;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 
 public class ReferencePosition extends GenomePosition {
 
-  final ImmutableList<Byte> refAllele;
-  final Optional<ImmutableList<Byte>> altAllele;
+  private final PileAllele refAllele;
+  private final Optional<PileAllele> altAllele;
 
   /**
    * @param contig
@@ -17,14 +17,11 @@ public class ReferencePosition extends GenomePosition {
    * @param refAllele
    * @param altAllele
    */
-  public ReferencePosition(
-      String contig,
-      int position,
-      ImmutableList<Byte> refAllele,
-      @Nullable ImmutableList<Byte> altAllele) {
+  private ReferencePosition(
+      String contig, int position, PileAllele refAllele, Optional<PileAllele> altAllele) {
     super(contig, position);
     this.refAllele = refAllele;
-    this.altAllele = Optional.ofNullable(altAllele);
+    this.altAllele = altAllele;
   }
 
   /**
@@ -34,8 +31,8 @@ public class ReferencePosition extends GenomePosition {
    * @param altAllele
    */
   public ReferencePosition(
-      String contig, int position, byte refAllele, @Nullable ImmutableList<Byte> altAllele) {
-    this(contig, position, ImmutableList.of(refAllele), altAllele);
+      String contig, int position, PileAllele refAllele, PileAllele altAllele) {
+    this(contig, position, refAllele, Optional.of(altAllele));
   }
 
   /**
@@ -44,32 +41,33 @@ public class ReferencePosition extends GenomePosition {
    * @param refAllele
    * @param altAllele
    */
-  public ReferencePosition(
-      String contig, int position, ImmutableList<Byte> refAllele, byte altAllele) {
-    this(contig, position, refAllele, ImmutableList.of(altAllele));
+  public ReferencePosition(String contig, int position, PileAllele refAllele) {
+    this(contig, position, refAllele, Optional.empty());
   }
 
-  /**
-   * @param contig
-   * @param position
-   * @param refAllele
-   * @param altAllele
-   */
-  public ReferencePosition(String contig, int position, byte refAllele, byte altAllele) {
-    this(contig, position, refAllele, ImmutableList.of(altAllele));
+  public static ReferencePosition fromVariantContext(VariantContext vc, Allele ref, Allele alt) {
+    final PileAllele refAllele;
+    final PileAllele altAllele;
+    if (ref.length() == 1 && alt.length() == 1) {
+      refAllele = SNPAllele.of(ref.getBases()[0]);
+      altAllele = SNPAllele.of(alt.getBases()[0]);
+    } else if (ref.length() == 1) {
+      altAllele = generateInsertionAllele(alt, ref);
+      refAllele = ((InsertionAllele) altAllele).getNonInsertionAllele();
+    } else if (alt.length() == 1) {
+      refAllele = generateInsertionAllele(ref, alt);
+      altAllele = ((InsertionAllele) refAllele).getNonInsertionAllele();
+    } else throw new IllegalArgumentException("Only SNPs and Indels are supported");
+    return new ReferencePosition(vc.getContig(), vc.getStart(), refAllele, altAllele);
   }
 
-  /**
-   * @param contig
-   * @param position
-   * @param refAllele
-   */
-  public ReferencePosition(String contig, int position, byte refAllele) {
-    this(contig, position, refAllele, null);
-  }
-
-  public ReferencePosition(VariantContext vc, Allele ref, Allele alt) {
-    this(vc.getContig(), vc.getStart(), alleleToBaseList(ref), alleleToBaseList(alt));
+  private static InsertionAllele generateInsertionAllele(Allele ins, Allele del) {
+    byte preBase = del.getBases()[0];
+    if (preBase != ins.getBases()[0])
+      throw new IllegalArgumentException("Indels must match on first base");
+    return new InsertionAllele(
+        SNPAllele.of(preBase),
+        ImmutableList.copyOf(Bytes.asList(ins.getBases()).subList(1, ins.getBases().length)));
   }
 
   private static ImmutableList<Byte> alleleToBaseList(Allele allele) {

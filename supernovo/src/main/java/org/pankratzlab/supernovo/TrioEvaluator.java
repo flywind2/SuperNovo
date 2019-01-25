@@ -108,7 +108,7 @@ public class TrioEvaluator {
             .stream()
             .filter(Predicates.not(vc.getReference()::equals))
             .collect(MoreCollectors.onlyElement());
-    return new ReferencePosition(vc, ref, alt);
+    return ReferencePosition.fromVariantContext(vc, ref, alt);
   }
 
   private Optional<DeNovoResult> evaluate(ReferencePosition pos) {
