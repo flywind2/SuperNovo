@@ -6,7 +6,7 @@ import com.google.common.collect.ImmutableList;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 
-public class ReferencePosition extends Position {
+public class ReferencePosition extends GenomePosition {
 
   final ImmutableList<Byte> refAllele;
   final Optional<ImmutableList<Byte>> altAllele;

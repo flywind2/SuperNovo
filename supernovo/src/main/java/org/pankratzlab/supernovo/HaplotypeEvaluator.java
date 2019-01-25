@@ -89,7 +89,7 @@ public class HaplotypeEvaluator {
 
     for (int searchPos = startSearch; searchPos < stopSearch; searchPos++) {
       if (searchPos == pos.getPosition()) continue;
-      Position searchPosition = new Position(pos.getContig(), searchPos);
+      GenomePosition searchPosition = new GenomePosition(pos.getContig(), searchPos);
       Pileup searchPileup = searchPileup(child, searchPosition);
       if (TrioEvaluator.looksVariant(searchPileup.getDepth())) {
         otherVariants++;
@@ -124,7 +124,7 @@ public class HaplotypeEvaluator {
     return maxOverlap / totalOverlap;
   }
 
-  private static Pileup searchPileup(Pileup base, Position searchPos) {
+  private static Pileup searchPileup(Pileup base, GenomePosition searchPos) {
     return new Pileup(base.getRecords(), searchPos);
   }
 }

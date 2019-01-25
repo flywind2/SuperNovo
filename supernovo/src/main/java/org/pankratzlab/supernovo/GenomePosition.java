@@ -2,7 +2,7 @@ package org.pankratzlab.supernovo;
 
 import java.util.Optional;
 
-public class Position implements Comparable<Position> {
+public class GenomePosition implements Comparable<GenomePosition> {
 
   protected final String contig;
   protected final int position;
@@ -11,7 +11,7 @@ public class Position implements Comparable<Position> {
    * @param contig
    * @param position
    */
-  public Position(String contig, int position) {
+  public GenomePosition(String contig, int position) {
     super();
     this.contig = contig;
     this.position = position;
@@ -45,14 +45,14 @@ public class Position implements Comparable<Position> {
   }
 
   @Override
-  public int compareTo(Position o) {
+  public int compareTo(GenomePosition o) {
     int contigCmp = compareContigs(o);
     if (contigCmp != 0) return contigCmp;
     int posCmp = Integer.compare(position, o.position);
     return posCmp;
   }
 
-  private int compareContigs(Position o) {
+  private int compareContigs(GenomePosition o) {
     if (contig.equals(o.contig)) return 0;
     Optional<Integer> chrNumeric = locateChrNumber();
     Optional<Integer> otherChrNumeric = o.locateChrNumber();
@@ -82,8 +82,8 @@ public class Position implements Comparable<Position> {
   public boolean equals(Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
-    if (!(obj instanceof Position)) return false;
-    Position other = (Position) obj;
+    if (!(obj instanceof GenomePosition)) return false;
+    GenomePosition other = (GenomePosition) obj;
     if (contig == null) {
       if (other.contig != null) return false;
     } else if (!contig.equals(other.contig)) return false;

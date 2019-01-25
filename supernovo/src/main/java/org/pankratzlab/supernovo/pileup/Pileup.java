@@ -3,7 +3,7 @@ package org.pankratzlab.supernovo.pileup;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
-import org.pankratzlab.supernovo.Position;
+import org.pankratzlab.supernovo.GenomePosition;
 import org.pankratzlab.supernovo.utilities.Phred;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -22,7 +22,7 @@ public class Pileup {
 
   private Optional<Depth> depth = Optional.empty();
 
-  public Pileup(ImmutableList<SAMRecord> queriedRecords, Position position) {
+  public Pileup(ImmutableList<SAMRecord> queriedRecords, GenomePosition position) {
     super();
     ImmutableSetMultimap.Builder<Byte, Integer> basePilesBuilder = ImmutableSetMultimap.builder();
     Map<Byte, Double> weightedDepth = Maps.newHashMap();
