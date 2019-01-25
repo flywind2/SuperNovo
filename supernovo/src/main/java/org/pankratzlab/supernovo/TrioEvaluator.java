@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionOverlap;
@@ -79,7 +80,7 @@ public class TrioEvaluator {
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
-      writer.println(DeNovoResult.Output.generateHeaderLine());
+      writer.println(OutputFields.generateHeader(DeNovoResult.class));
       queriedVariants
           .iterator()
           .stream()
@@ -88,7 +89,7 @@ public class TrioEvaluator {
           .map(this::evaluate)
           .filter(Optional::isPresent)
           .map(Optional::get)
-          .map(DeNovoResult.Output::generateOutputLine)
+          .map(DeNovoResult::generateLine)
           .forEachOrdered(writer::println);
     }
   }
@@ -108,9 +109,9 @@ public class TrioEvaluator {
               new HaplotypeEvaluator(
                       pos, childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))
                   .haplotypeConcordance(),
-              generateSample(childID, childPile),
-              generateSample(parent1ID, p1Pileups.getUnchecked(pos)),
-              generateSample(parent2ID, p2Pileups.getUnchecked(pos))));
+              generateSample(childID, childPile, childPile),
+              generateSample(parent1ID, p1Pileups.getUnchecked(pos), childPile),
+              generateSample(parent2ID, p2Pileups.getUnchecked(pos), childPile)));
     }
     return Optional.empty();
   }
@@ -142,8 +143,9 @@ public class TrioEvaluator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private static DeNovoResult.Sample generateSample(String id, Pileup pileup) {
-    return new DeNovoResult.Sample(id, pileup);
+  private static DeNovoResult.Sample generateSample(String id, Pileup pileup, Pileup childPile) {
+    return new DeNovoResult.Sample(
+        id, pileup, childPile.getDepth().getA1(), childPile.getDepth().getA2());
   }
 
   public static boolean looksDenovo(Pileup childPileup, Pileup p1Pileup, Pileup p2Pileup) {
