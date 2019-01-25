@@ -121,9 +121,9 @@ public class TrioEvaluator {
               new HaplotypeEvaluator(
                       pos, childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))
                   .haplotypeConcordance(),
-              generateSample(childID, childPile, childPile),
-              generateSample(parent1ID, p1Pileups.getUnchecked(pos), childPile),
-              generateSample(parent2ID, p2Pileups.getUnchecked(pos), childPile)));
+              generateSample(childID, pos, childPile, childPile),
+              generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
+              generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
     }
     return Optional.empty();
   }
@@ -155,9 +155,9 @@ public class TrioEvaluator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private static DeNovoResult.Sample generateSample(String id, Pileup pileup, Pileup childPile) {
+  private static DeNovoResult.Sample generateSample(String id, ReferencePosition pos, Pileup pileup, Pileup childPile) {
     return new DeNovoResult.Sample(
-        id, pileup, childPile.getDepth().getA1(), childPile.getDepth().getA2());
+        id, pileup, pos, childPile.getDepth().getA1(), childPile.getDepth().getA2());
   }
 
   public static boolean looksDenovo(Pileup childPileup, Pileup p1Pileup, Pileup p2Pileup) {

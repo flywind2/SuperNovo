@@ -16,6 +16,8 @@ public class DeNovoResult implements OutputFields {
 
     public final String id;
     public final int rawDepth;
+    public final int refRawDepth;
+    public final Optional<Integer> altRawDepth;
     public final int a1RawDepth;
     public final int a2RawDepth;
     public final int a1ClippedReads;
@@ -23,6 +25,8 @@ public class DeNovoResult implements OutputFields {
     public final int a1UnmappedMateReads;
     public final int a2UnmappedMateReads;
     public final double weightedDepth;
+    public final double refWeightedDepth;
+    public final Optional<Double> altWeightedDepth;
     public final double a1WeightedDepth;
     public final double a2WeightedDepth;
 
@@ -31,14 +35,24 @@ public class DeNovoResult implements OutputFields {
     /**
      * @param id
      * @param pileup
+     * @param pos TODO
      */
-    public Sample(String id, Pileup pileup, Optional<PileAllele> a1, Optional<PileAllele> a2) {
+    public Sample(
+        String id,
+        Pileup pileup,
+        ReferencePosition pos,
+        Optional<PileAllele> a1,
+        Optional<PileAllele> a2) {
       super();
       this.pileup = pileup;
       Depth depth = pileup.getDepth();
+      PileAllele ref = pos.getRefAllele();
+      Optional<PileAllele> alt = pos.getAltAllele();
 
       this.id = id;
       rawDepth = depth.rawTotalDepth();
+      refRawDepth = depth.allelicRawDepth(ref);
+      altRawDepth = alt.map(depth::allelicRawDepth);
       a1RawDepth = a1.map(depth::allelicRawDepth).orElse(0);
       a2RawDepth = a2.map(depth::allelicRawDepth).orElse(0);
       a1ClippedReads = a1.map(pileup.getClippedReadCounts()::count).orElse(0);
@@ -46,6 +60,8 @@ public class DeNovoResult implements OutputFields {
       a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       a2UnmappedMateReads = a2.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       weightedDepth = depth.weightedTotalDepth();
+      refWeightedDepth = depth.allelicWeightedDepth(ref);
+      altWeightedDepth = alt.map(depth::allelicWeightedDepth);
       a1WeightedDepth = a1.map(depth::allelicWeightedDepth).orElse(0.0);
       a2WeightedDepth = a2.map(depth::allelicWeightedDepth).orElse(0.0);
     }
