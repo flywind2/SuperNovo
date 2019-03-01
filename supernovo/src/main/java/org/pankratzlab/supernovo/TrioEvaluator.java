@@ -155,7 +155,8 @@ public class TrioEvaluator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private static DeNovoResult.Sample generateSample(String id, ReferencePosition pos, Pileup pileup, Pileup childPile) {
+  private static DeNovoResult.Sample generateSample(
+      String id, ReferencePosition pos, Pileup pileup, Pileup childPile) {
     return new DeNovoResult.Sample(
         id, pileup, pos, childPile.getDepth().getA1(), childPile.getDepth().getA2());
   }
