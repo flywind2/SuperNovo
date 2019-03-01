@@ -110,7 +110,7 @@ public class DeNovoResult implements OutputFields {
   public final boolean superNovo;
   public final double meanHaplotypeConcordance;
   public final int overlappingReadsHetCount;
-  public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.95;
+  public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
   public final int overlappingReadsDiscordantHetCount;
   public final int overlappingReadsDeNovoCount;
   public final int overlapingReadsThirdAlleleCount;
