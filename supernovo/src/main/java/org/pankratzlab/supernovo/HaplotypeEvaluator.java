@@ -13,25 +13,30 @@ public class HaplotypeEvaluator {
     private final int otherVariants;
     private final int otherTriallelics;
     private final int otherBiallelics;
+    private final int adjacentDeNovos;
     private final int otherDeNovos;
     private final List<Double> concordances;
     /**
      * @param otherVariants
      * @param otherTriallelics
      * @param otherBiallelics
+     * @param adjacentDeNovos TODO
      * @param otherDeNovos
      * @param concordances
+     * @param adjacentDeNovos
      */
     public Result(
         int otherVariants,
         int otherTriallelics,
         int otherBiallelics,
+        int adjacentDeNovos,
         int otherDeNovos,
         List<Double> concordances) {
       super();
       this.otherVariants = otherVariants;
       this.otherTriallelics = otherTriallelics;
       this.otherBiallelics = otherBiallelics;
+      this.adjacentDeNovos = adjacentDeNovos;
       this.otherDeNovos = otherDeNovos;
       this.concordances = concordances;
     }
@@ -46,6 +51,10 @@ public class HaplotypeEvaluator {
     /** @return the otherBiallelics */
     public int getOtherBiallelics() {
       return otherBiallelics;
+    }
+    /** @return the adjacentDeNovos */
+    public int getAdjacentDeNovos() {
+      return adjacentDeNovos;
     }
     /** @return the otherDeNovos */
     public int getOtherDeNovos() {
@@ -81,7 +90,7 @@ public class HaplotypeEvaluator {
     int startSearch = Integer.max(0, pos.getPosition() - HAPLOTYPE_SEARCH_DISTANCE);
     int stopSearch = pos.getPosition() + HAPLOTYPE_SEARCH_DISTANCE;
 
-    int otherDenovos = 0;
+    Set<Integer> otherDenovoPositions = Sets.newHashSet();
     int otherTriallelics = 0;
     int otherBiallelics = 0;
     int otherVariants = 0;
@@ -100,13 +109,29 @@ public class HaplotypeEvaluator {
           concordances.add(concordance(child, searchPileup));
           if (TrioEvaluator.looksDenovo(
               searchPileup, searchPileup(p1, searchPosition), searchPileup(p2, searchPosition))) {
-            otherDenovos++;
+            otherDenovoPositions.add(searchPos);
           }
         }
       }
     }
+    int adjacentDeNovos = calculateAdjacentDenovos(otherDenovoPositions);
+    int otherDenovos = otherDenovoPositions.size() - adjacentDeNovos;
     return new Result(
-        otherVariants, otherTriallelics, otherBiallelics, otherDenovos, concordances.build());
+        otherVariants,
+        otherTriallelics,
+        otherBiallelics,
+        adjacentDeNovos,
+        otherDenovos,
+        concordances.build());
+  }
+
+  private int calculateAdjacentDenovos(Set<Integer> otherDenovoPositions) {
+    int adjacentDeNovos = 0;
+    int searchPos = pos.getPosition();
+    while (otherDenovoPositions.contains(++searchPos)) adjacentDeNovos++;
+    searchPos = pos.getPosition();
+    while (otherDenovoPositions.contains(--searchPos)) adjacentDeNovos++;
+    return adjacentDeNovos;
   }
 
   private static double concordance(Pileup base, Pileup search) {

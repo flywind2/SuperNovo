@@ -112,7 +112,8 @@ public class DeNovoResult implements OutputFields {
   public final int overlappingReadsHetCount;
   public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
   public final int overlappingReadsDiscordantHetCount;
-  public final int overlappingReadsDeNovoCount;
+  public final int overlappingReadsAdjacentDeNovoCounts;
+  public final int overlappingReadsIndependentDeNovoCount;
   public final int overlapingReadsThirdAlleleCount;
   public final Sample child;
   public final Sample p1;
@@ -167,7 +168,8 @@ public class DeNovoResult implements OutputFields {
             && hapResults.getOtherDeNovos() == 0
             && meanHaplotypeConcordance >= MIN_HAPLOTYPE_CONCORDANCE
             && hapResults.getOtherTriallelics() == 0;
-    overlappingReadsDeNovoCount = hapResults.getOtherDeNovos();
+    overlappingReadsAdjacentDeNovoCounts = hapResults.getAdjacentDeNovos();
+    overlappingReadsIndependentDeNovoCount = hapResults.getOtherDeNovos();
     overlapingReadsThirdAlleleCount = hapResults.getOtherTriallelics();
   }
 }
