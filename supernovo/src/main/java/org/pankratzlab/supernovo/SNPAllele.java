@@ -33,6 +33,11 @@ public class SNPAllele extends AbstractPileAllele {
   }
 
   @Override
+  public boolean clipped(SAMRecord record, int readPos) {
+    return record.getReferencePositionAtReadPosition(readPos) != 0;
+  }
+
+  @Override
   public double weightedDepth(SAMRecord samRecord, int readPos) {
     return singlePosWeightedDepth(samRecord, readPos);
   }

@@ -44,9 +44,10 @@ public class Pileup {
                 .findFirst()
                 .orElseGet(() -> getAppropriateAllele(samRecord, readPos));
         basePilesBuilder.put(allele, i);
-        weightedDepth.put(
-            allele,
-            weightedDepth.getOrDefault(allele, 0.0) + allele.weightedDepth(samRecord, readPos));
+        if (!allele.clipped(samRecord, readPos))
+          weightedDepth.put(
+              allele,
+              weightedDepth.getOrDefault(allele, 0.0) + allele.weightedDepth(samRecord, readPos));
         if (samRecord.getCigar().isClipped()) clippedReadCountsBuilder.add(allele);
         if (samRecord.getMateUnmappedFlag()) unmappedMateCountsBuilder.add(allele);
       }
@@ -80,6 +81,18 @@ public class Pileup {
   /** @return Multiset of {@link PileAllele} counts */
   public ImmutableMultiset<PileAllele> getBaseCounts() {
     return basePiles.keys();
+  }
+
+  /**
+   * @return Map from {@link PileAllele} to fraction of total depth for that {@link PileAllele},
+   *     iteration order is in descending order of base fraction
+   */
+  public ImmutableMap<PileAllele, Double> getBaseFractions() {
+
+    return ImmutableMap.copyOf(
+        Maps.<PileAllele, Double>asMap(
+            getBaseCounts().elementSet(),
+            b -> getBaseCounts().count(b) / (double) getBaseCounts().size()));
   }
 
   /**

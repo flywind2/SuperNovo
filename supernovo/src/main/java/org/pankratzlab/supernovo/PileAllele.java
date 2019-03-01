@@ -14,6 +14,13 @@ public interface PileAllele {
   /**
    * @param record to test
    * @param readPos to query
+   * @return true if support for this {@link PileAllele} is based on a clipped portion of record
+   */
+  boolean clipped(SAMRecord record, int readPos);
+
+  /**
+   * @param record to test
+   * @param readPos to query
    * @return weighted depth for allele
    */
   double weightedDepth(SAMRecord record, int readPos);

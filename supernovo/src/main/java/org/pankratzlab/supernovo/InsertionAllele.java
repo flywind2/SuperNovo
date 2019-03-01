@@ -17,6 +17,11 @@ public class InsertionAllele extends AbstractPileAllele {
       return InsertionAllele.this.supportType(record, readPos).equals(Support.NO_INSERTION);
     }
 
+    @Override
+    public boolean clipped(SAMRecord record, int readPos) {
+      return false;
+    }
+
     public InsertionAllele getInsertionAllele() {
       return InsertionAllele.this;
     }
@@ -51,9 +56,17 @@ public class InsertionAllele extends AbstractPileAllele {
   }
 
   private enum Support {
-    INSERTION,
-    NO_INSERTION,
-    OTHER;
+    CLIPPED_INSERTION(true),
+    CLEAN_INSERTION(true),
+    NO_INSERTION(false),
+    OTHER(false);
+
+    private final boolean supported;
+
+    /** @param supported */
+    private Support(boolean supported) {
+      this.supported = supported;
+    }
   }
 
   private final SNPAllele preInsertionBase;
@@ -73,7 +86,12 @@ public class InsertionAllele extends AbstractPileAllele {
 
   @Override
   public boolean supported(final SAMRecord record, final int readPos) {
-    return supportType(record, readPos).equals(Support.INSERTION);
+    return supportType(record, readPos).supported;
+  }
+
+  @Override
+  public boolean clipped(SAMRecord record, int readPos) {
+    return supportType(record, readPos).equals(Support.CLIPPED_INSERTION);
   }
 
   @Override
@@ -90,16 +108,19 @@ public class InsertionAllele extends AbstractPileAllele {
   private Support supportType(final SAMRecord record, final int readPos) {
     if (preInsertionBase.supported(record, readPos)) {
       boolean support = false;
+      boolean clipped = false;
       byte[] readBases = record.getReadBases();
       int offset = readPos + 1;
       for (int i = 0; i < insertedBases.size() && i + offset < readBases.length; i++) {
-        if (readBases[i + offset] == insertedBases.get(i)) support = true;
-        else {
+        if (readBases[i + offset] == insertedBases.get(i)) {
+          support = true;
+          if (record.getReferencePositionAtReadPosition(i + offset) == 0) clipped = true;
+        } else {
           if (support) return Support.OTHER;
           return Support.NO_INSERTION;
         }
       }
-      if (support) return Support.INSERTION;
+      if (support) return clipped ? Support.CLIPPED_INSERTION : Support.CLEAN_INSERTION;
       return Support.OTHER;
     }
     return Support.OTHER;
