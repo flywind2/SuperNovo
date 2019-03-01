@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.pankratzlab.supernovo.output.DeNovoResult;
@@ -22,6 +21,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SamReader;
 import htsjdk.variant.variantcontext.Allele;
@@ -146,12 +146,12 @@ public class TrioEvaluator {
 
   private static Set<PileAllele> possibleAlleles(Pileup pileup) {
     return pileup
-        .getWeightedBaseCounts()
+        .getBaseCounts()
         .entrySet()
         .stream()
-        .filter(e -> e.getValue() > MAX_MISCALL_WEIGHT)
-        .map(Map.Entry::getKey)
-        .filter(b -> pileup.getWeightedBaseFractions().get(b) > MAX_MISCALL_RATIO)
+        .filter(e -> e.getCount() > MAX_MISCALL_WEIGHT)
+        .map(Multiset.Entry::getElement)
+        .filter(b -> pileup.getBaseFractions().get(b) > MAX_MISCALL_RATIO)
         .collect(ImmutableSet.toImmutableSet());
   }
 
