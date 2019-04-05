@@ -8,7 +8,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
 
-public class SAMReaderIteratingCache {
+public class SAMReaderIteratingCache implements AutoCloseable {
 
   private final SamReader reader;
   private SAMRecordIterator contigIter;
@@ -23,6 +23,7 @@ public class SAMReaderIteratingCache {
       if (position.getContig() != curContig) {
         curContig = position.getContig();
         unpiledPositions.clear();
+        if (contigIter != null) contigIter.close();
         contigIter = reader.queryContained(curContig, 0, Integer.MAX_VALUE);
       }
       int searchPos = position.getPosition();
@@ -56,5 +57,10 @@ public class SAMReaderIteratingCache {
     for (int i = record.getAlignmentStart(); i <= record.getAlignmentEnd(); i++) {
       unpiledPositions.computeIfAbsent(i, k -> ImmutableList.builder()).add(record);
     }
+  }
+
+  @Override
+  public void close() {
+    if (contigIter != null) contigIter.close();
   }
 }

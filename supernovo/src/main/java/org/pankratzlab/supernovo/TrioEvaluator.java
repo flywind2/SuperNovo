@@ -16,6 +16,7 @@ import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionQueryOverlap;
+import org.pankratzlab.supernovo.pileup.SAMReaderIteratingCache;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -36,7 +37,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
 
-public class TrioEvaluator {
+public class TrioEvaluator implements AutoCloseable {
 
   private static final int READ_LENGTH = 150;
   private static final int MIN_DEPTH = 10;
@@ -51,6 +52,8 @@ public class TrioEvaluator {
   private final String parent2ID;
 
   private final SAMSequenceDictionary dict;
+  
+  private final SAMReaderIteratingCache childIteratingCache;
 
   private final LoadingCache<ReferencePosition, Pileup> childPileups;
   private final LoadingCache<ReferencePosition, Pileup> p1Pileups;
@@ -82,10 +85,14 @@ public class TrioEvaluator {
           "Parent sequence dictionaries don't match child sequence dictionary");
     }
 
+    childIteratingCache = new SAMReaderIteratingCache(child);
     this.childPileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(child, pos).getRecords(), pos)));
+                pos ->
+                    new Pileup(
+                        childIteratingCache.new SAMPositionIterationOverlap(pos).getRecords(),
+                        pos)));
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
@@ -213,5 +220,10 @@ public class TrioEvaluator {
             .flatMap(Set::stream)
             .collect(ImmutableSet.toImmutableSet());
     return !Sets.difference(childPileup.getDepth().getBiAlleles(), parentalAlleles).isEmpty();
+  }
+
+  @Override
+  public void close() {
+    childIteratingCache.close();
   }
 }
