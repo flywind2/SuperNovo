@@ -4,19 +4,34 @@ import java.io.File;
 import java.io.IOException;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.variant.vcf.VCFFileReader;
 import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Option;
 
 public class App implements Runnable {
 
-  @Option(
-    names = {"--vcf", "-v"},
-    paramLabel = "VCF",
-    description = "VCF with variants to query for de novo mutations",
-    required = true
-  )
-  private File vcf;
+  private static class Query {
+    @Option(
+      names = {"--vcf", "-v"},
+      paramLabel = "VCF",
+      description = "VCF with variants to query for de novo mutations",
+      required = true
+    )
+    private File vcf;
+
+    @Option(
+      names = {"--fasta", "-f"},
+      paramLabel = "FASTA",
+      description = "Reference genome FASTA to query for de novo mutations",
+      required = true
+    )
+    private File referenceFasta;
+  }
+
+  @ArgGroup(exclusive = true, multiplicity = "1")
+  private Query query;
 
   @Option(
     names = {"--childBam", "--bam"},
@@ -83,9 +98,18 @@ public class App implements Runnable {
     SamReaderFactory srFactory = SamReaderFactory.make();
     try (SamReader child = srFactory.open(childBam);
         SamReader p1 = srFactory.open(p1Bam);
-        SamReader p2 = srFactory.open(p2Bam);
-        VCFFileReader vcfReader = new VCFFileReader(vcf)) {
-      new TrioEvaluator(child, childID, p1, p1ID, p2, p2ID).reportDeNovos(vcfReader, output);
+        SamReader p2 = srFactory.open(p2Bam)) {
+      TrioEvaluator trioEvaluator = new TrioEvaluator(child, childID, p1, p1ID, p2, p2ID);
+      if (query.vcf != null) {
+        try (VCFFileReader vcfReader = new VCFFileReader(query.vcf)) {
+          trioEvaluator.reportDeNovos(vcfReader, output);
+        }
+      } else {
+        try (IndexedFastaSequenceFile fastaSeq =
+            new IndexedFastaSequenceFile(query.referenceFasta)) {
+          trioEvaluator.reportAllDeNovos(fastaSeq, output);
+        }
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
