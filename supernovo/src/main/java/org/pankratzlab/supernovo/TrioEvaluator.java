@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.pankratzlab.supernovo.output.DeNovoResult;
 import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
@@ -23,7 +25,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SamReader;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -42,6 +49,8 @@ public class TrioEvaluator {
   private final String childID;
   private final String parent1ID;
   private final String parent2ID;
+
+  private final SAMSequenceDictionary dict;
 
   private final LoadingCache<ReferencePosition, Pileup> childPileups;
   private final LoadingCache<ReferencePosition, Pileup> p1Pileups;
@@ -64,6 +73,15 @@ public class TrioEvaluator {
     this.parent1ID = parent1ID;
     this.parent2ID = parent2ID;
 
+    dict = child.getFileHeader().getSequenceDictionary();
+    if (Stream.of(parent1, parent2)
+        .map(SamReader::getFileHeader)
+        .map(SAMFileHeader::getSequenceDictionary)
+        .anyMatch(p -> !p.isSameDictionary(dict))) {
+      throw new IllegalArgumentException(
+          "Parent sequence dictionaries don't match child sequence dictionary");
+    }
+
     this.childPileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
@@ -76,6 +94,31 @@ public class TrioEvaluator {
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
                 pos -> new Pileup(new SAMPositionQueryOverlap(parent2, pos).getRecords(), pos)));
+  }
+
+  public void reportAllDeNovos(IndexedFastaSequenceFile genome, File output) throws IOException {
+    try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
+      writer.println(OutputFields.generateHeader(DeNovoResult.class));
+      dict.getSequences()
+          .stream()
+          .map(SAMSequenceRecord::getSequenceName)
+          .map(genome::getSequence)
+          .flatMap(TrioEvaluator::generateRefPositions)
+          .map(this::evaluate)
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .map(DeNovoResult::generateLine)
+          .forEachOrdered(writer::println);
+    }
+  }
+
+  private static Stream<ReferencePosition> generateRefPositions(ReferenceSequence refSeq) {
+    Set<Byte> validBases = ImmutableSet.of((byte) 'A', (byte) 'T', (byte) 'C', (byte) 'G');
+    byte[] bases = refSeq.getBases();
+    String contig = refSeq.getName();
+    return IntStream.range(0, bases.length)
+        .filter(i -> validBases.contains(bases[i]))
+        .mapToObj(i -> new ReferencePosition(contig, i + 1, SNPAllele.of(bases[i])));
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
