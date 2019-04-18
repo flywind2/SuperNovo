@@ -13,14 +13,19 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 
 public class Pileup {
+
+  private static final double MIN_PERCENT_BASES_MATCH = 0.5;
 
   private final ImmutableSetMultimap<PileAllele, Integer> basePiles;
   private final ImmutableMap<PileAllele, Double> weightedBaseCounts;
   private final ImmutableList<SAMRecord> queriedRecords;
   private final ImmutableMultiset<PileAllele> clippedReadCounts;
+  private final ImmutableMultiset<PileAllele> apparentMismapReadCounts;
   private final ImmutableMultiset<PileAllele> unmappedMateCounts;
 
   private Optional<Depth> depth = Optional.empty();
@@ -32,6 +37,8 @@ public class Pileup {
         ImmutableSetMultimap.builder();
     Map<PileAllele, Double> weightedDepth = Maps.newHashMap();
     ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder = ImmutableMultiset.builder();
+    ImmutableMultiset.Builder<PileAllele> apparentMismapReadCountsBuilder =
+        ImmutableMultiset.builder();
     ImmutableMultiset.Builder<PileAllele> unmappedMateCountsBuilder = ImmutableMultiset.builder();
     for (int i = 0; i < queriedRecords.size(); i++) {
       SAMRecord samRecord = queriedRecords.get(i);
@@ -44,12 +51,23 @@ public class Pileup {
                 .findFirst()
                 .orElseGet(() -> getAppropriateAllele(samRecord, readPos));
         basePilesBuilder.put(allele, i);
-        if (!allele.clipped(samRecord, readPos))
+        boolean countWeight = true;
+        if (samRecord.getCigar().isClipped()) {
+          clippedReadCountsBuilder.add(allele);
+          countWeight = false;
+        } else if (calcPercentReadMatchesRef(samRecord) >= MIN_PERCENT_BASES_MATCH) {
+          apparentMismapReadCountsBuilder.add(allele);
+          countWeight = false;
+        }
+        if (samRecord.getMateUnmappedFlag()) {
+          unmappedMateCountsBuilder.add(allele);
+          countWeight = false;
+        }
+        if (countWeight) {
           weightedDepth.put(
               allele,
               weightedDepth.getOrDefault(allele, 0.0) + allele.weightedDepth(samRecord, readPos));
-        if (samRecord.getCigar().isClipped()) clippedReadCountsBuilder.add(allele);
-        if (samRecord.getMateUnmappedFlag()) unmappedMateCountsBuilder.add(allele);
+        }
       }
     }
     basePiles = basePilesBuilder.build();
@@ -59,8 +77,20 @@ public class Pileup {
             .orderEntriesByValue(Comparator.reverseOrder())
             .build();
     clippedReadCounts = clippedReadCountsBuilder.build();
+    apparentMismapReadCounts = apparentMismapReadCountsBuilder.build();
     unmappedMateCounts = unmappedMateCountsBuilder.build();
     this.queriedRecords = queriedRecords;
+  }
+
+  private double calcPercentReadMatchesRef(SAMRecord samRecord) {
+    return samRecord
+            .getCigar()
+            .getCigarElements()
+            .stream()
+            .filter(c -> c.getOperator().equals(CigarOperator.EQ))
+            .mapToInt(CigarElement::getLength)
+            .sum()
+        / (double) samRecord.getReadLength();
   }
 
   private static PileAllele getAppropriateAllele(SAMRecord samRecord, int readPos) {
@@ -116,6 +146,11 @@ public class Pileup {
   /** @return the clippedReadCounts */
   public ImmutableMultiset<PileAllele> getClippedReadCounts() {
     return clippedReadCounts;
+  }
+
+  /** @return the apparentMismapReadCounts */
+  public ImmutableMultiset<PileAllele> getApparentMismapReadCounts() {
+    return apparentMismapReadCounts;
   }
 
   /** @return the unmappedMateCounts */

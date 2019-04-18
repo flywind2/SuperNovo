@@ -27,6 +27,8 @@ public class DeNovoResult implements OutputFields {
     public final int g_rawDepth;
     public final int a1ClippedReads;
     public final int a2ClippedReads;
+    public final int a1ApparentMismapReads;
+    public final int a2ApparentMismapReads;
     public final int a1UnmappedMateReads;
     public final int a2UnmappedMateReads;
     public final double weightedDepth;
@@ -70,6 +72,8 @@ public class DeNovoResult implements OutputFields {
       g_rawDepth = depth.allelicRawDepth(SNPAllele.G);
       a1ClippedReads = a1.map(pileup.getClippedReadCounts()::count).orElse(0);
       a2ClippedReads = a2.map(pileup.getClippedReadCounts()::count).orElse(0);
+      a1ApparentMismapReads = a1.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
+      a2ApparentMismapReads = a2.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
       a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       a2UnmappedMateReads = a2.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       weightedDepth = depth.weightedTotalDepth();
@@ -99,6 +103,8 @@ public class DeNovoResult implements OutputFields {
     }
   }
 
+  private static final String NO_NON_SUPERNOVO_REASON = ".";
+
   public final String chr;
   public final int position;
   public final PileAllele refAllele;
@@ -108,6 +114,7 @@ public class DeNovoResult implements OutputFields {
   public final boolean biallelicHeterozygote;
   public final boolean deNovo;
   public final boolean superNovo;
+  public final String nonSuperNovoReason;
   public final double meanHaplotypeConcordance;
   public final int overlappingReadsHetCount;
   public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
@@ -162,12 +169,14 @@ public class DeNovoResult implements OutputFields {
                 .mapToDouble(Double::valueOf)
                 .filter(d -> d < MIN_HAPLOTYPE_CONCORDANCE)
                 .count();
-    superNovo =
-        biallelicHeterozygote
-            && deNovo
-            && hapResults.getOtherDeNovos() == 0
-            && meanHaplotypeConcordance >= MIN_HAPLOTYPE_CONCORDANCE
-            && hapResults.getOtherTriallelics() == 0;
+    if (!biallelicHeterozygote) nonSuperNovoReason = "Not biallelic heterozygote";
+    else if (!deNovo) nonSuperNovoReason = "Not denovo";
+    else if (hapResults.getOtherDeNovos() != 0) nonSuperNovoReason = "Other denovos in region";
+    else if (meanHaplotypeConcordance < MIN_HAPLOTYPE_CONCORDANCE)
+      nonSuperNovoReason = "Haplotype Concordance < " + MIN_HAPLOTYPE_CONCORDANCE;
+    else if (hapResults.getOtherTriallelics() != 0) nonSuperNovoReason = "Triallelics in region";
+    else nonSuperNovoReason = NO_NON_SUPERNOVO_REASON;
+    superNovo = nonSuperNovoReason.equals(NO_NON_SUPERNOVO_REASON);
     overlappingReadsAdjacentDeNovoCounts = hapResults.getAdjacentDeNovos();
     overlappingReadsIndependentDeNovoCount = hapResults.getOtherDeNovos();
     overlapingReadsThirdAlleleCount = hapResults.getOtherTriallelics();
