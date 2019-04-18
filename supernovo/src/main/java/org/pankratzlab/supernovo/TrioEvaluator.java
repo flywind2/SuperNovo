@@ -52,7 +52,7 @@ public class TrioEvaluator implements AutoCloseable {
   private final String parent2ID;
 
   private final SAMSequenceDictionary dict;
-  
+
   private final SAMReaderIteratingCache childIteratingCache;
 
   private final LoadingCache<ReferencePosition, Pileup> childPileups;
@@ -114,6 +114,7 @@ public class TrioEvaluator implements AutoCloseable {
           .map(this::evaluate)
           .filter(Optional::isPresent)
           .map(Optional::get)
+          .filter(d -> d.deNovo)
           .map(DeNovoResult::generateLine)
           .forEachOrdered(writer::println);
     }
