@@ -27,6 +27,8 @@ public class DeNovoResult implements OutputFields {
     public final int g_rawDepth;
     public final int a1ClippedReads;
     public final int a2ClippedReads;
+    public final int a1ApparentMismapReads;
+    public final int a2ApparentMismapReads;
     public final int a1UnmappedMateReads;
     public final int a2UnmappedMateReads;
     public final double weightedDepth;
@@ -70,6 +72,8 @@ public class DeNovoResult implements OutputFields {
       g_rawDepth = depth.allelicRawDepth(SNPAllele.G);
       a1ClippedReads = a1.map(pileup.getClippedReadCounts()::count).orElse(0);
       a2ClippedReads = a2.map(pileup.getClippedReadCounts()::count).orElse(0);
+      a1ApparentMismapReads = a1.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
+      a2ApparentMismapReads = a2.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
       a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       a2UnmappedMateReads = a2.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       weightedDepth = depth.weightedTotalDepth();
