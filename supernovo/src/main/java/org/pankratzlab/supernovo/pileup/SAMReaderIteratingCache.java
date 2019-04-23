@@ -24,12 +24,13 @@ public class SAMReaderIteratingCache implements AutoCloseable {
         curContig = position.getContig();
         unpiledPositions.clear();
         if (contigIter != null) contigIter.close();
-        contigIter = reader.queryContained(curContig, 0, Integer.MAX_VALUE);
+        contigIter = reader.queryContained(curContig, 0, 0);
       }
       int searchPos = position.getPosition();
+      unpiledPositions.headMap(searchPos).clear();
       while (contigIter.hasNext()) {
         SAMRecord curRecord = contigIter.next();
-        addRecord(curRecord);
+        if (curRecord.getAlignmentEnd() >= searchPos) addRecord(curRecord);
         if (curRecord.getAlignmentStart() > searchPos) break;
       }
       records =
