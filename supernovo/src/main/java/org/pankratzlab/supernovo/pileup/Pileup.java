@@ -28,7 +28,6 @@ public class Pileup {
     private final ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder;
     private final ImmutableMultiset.Builder<PileAllele> apparentMismapReadCountsBuilder;
     private final ImmutableMultiset.Builder<PileAllele> unmappedMateCountsBuilder;
-    private int recordNum;
 
     public Builder(GenomePosition position) {
       this.position = position;
@@ -38,7 +37,6 @@ public class Pileup {
       clippedReadCountsBuilder = ImmutableMultiset.builder();
       apparentMismapReadCountsBuilder = ImmutableMultiset.builder();
       unmappedMateCountsBuilder = ImmutableMultiset.builder();
-      recordNum = 0;
     }
 
     public Builder addRecord(SAMRecord samRecord) {
@@ -50,7 +48,7 @@ public class Pileup {
                 .filter(a -> a.supported(samRecord, readPos))
                 .findFirst()
                 .orElseGet(() -> getAppropriateAllele(samRecord, readPos));
-        basePilesBuilder.put(allele, recordNum++);
+        basePilesBuilder.put(allele, samRecord.hashCode());
         boolean countWeight = true;
         if (samRecord.getCigar().isClipped()) {
           clippedReadCountsBuilder.add(allele);
