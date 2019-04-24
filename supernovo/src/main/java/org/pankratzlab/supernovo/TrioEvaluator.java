@@ -55,9 +55,9 @@ public class TrioEvaluator implements AutoCloseable {
 
   private final SAMReaderIteratingCache childIteratingCache;
 
-  private final LoadingCache<ReferencePosition, Pileup> childPileups;
-  private final LoadingCache<ReferencePosition, Pileup> p1Pileups;
-  private final LoadingCache<ReferencePosition, Pileup> p2Pileups;
+  private final LoadingCache<GenomePosition, Pileup> childPileups;
+  private final LoadingCache<GenomePosition, Pileup> p1Pileups;
+  private final LoadingCache<GenomePosition, Pileup> p2Pileups;
 
   /**
    * @param child {@link SamReader} of child to evluate for de novo variants
@@ -178,7 +178,10 @@ public class TrioEvaluator implements AutoCloseable {
           new DeNovoResult(
               pos,
               new HaplotypeEvaluator(
-                      pos, childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))
+                      pos,
+                      childPileups::getUnchecked,
+                      p1Pileups::getUnchecked,
+                      p2Pileups::getUnchecked)
                   .haplotypeConcordance(),
               generateSample(childID, pos, childPile, childPile),
               generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),

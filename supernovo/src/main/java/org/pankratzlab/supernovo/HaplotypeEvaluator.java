@@ -2,6 +2,7 @@ package org.pankratzlab.supernovo;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import org.pankratzlab.supernovo.pileup.Depth.Allele;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import com.google.common.collect.ImmutableList;
@@ -70,25 +71,31 @@ public class HaplotypeEvaluator {
   private static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
 
   private final ReferencePosition pos;
-  private final Pileup child;
-  private final Pileup p1;
-  private final Pileup p2;
+  private final Function<GenomePosition, Pileup> childPiles;
+  private final Function<GenomePosition, Pileup> p1Piles;
+  private final Function<GenomePosition, Pileup> p2Piles;
   /**
    * @param child
    * @param p1
    * @param p2
    */
-  public HaplotypeEvaluator(ReferencePosition pos, Pileup child, Pileup p1, Pileup p2) {
+  public HaplotypeEvaluator(
+      ReferencePosition pos,
+      Function<GenomePosition, Pileup> childPiles,
+      Function<GenomePosition, Pileup> p1Piles,
+      Function<GenomePosition, Pileup> p2Piles) {
     super();
     this.pos = pos;
-    this.child = child;
-    this.p1 = p1;
-    this.p2 = p2;
+    this.childPiles = childPiles;
+    this.p1Piles = p1Piles;
+    this.p2Piles = p2Piles;
   }
 
   public Result haplotypeConcordance() {
     int startSearch = Integer.max(0, pos.getPosition() - HAPLOTYPE_SEARCH_DISTANCE);
     int stopSearch = pos.getPosition() + HAPLOTYPE_SEARCH_DISTANCE;
+
+    Pileup childPile = childPiles.apply(pos);
 
     Set<Integer> otherDenovoPositions = Sets.newHashSet();
     int otherTriallelics = 0;
@@ -99,16 +106,16 @@ public class HaplotypeEvaluator {
     for (int searchPos = startSearch; searchPos < stopSearch; searchPos++) {
       if (searchPos == pos.getPosition()) continue;
       GenomePosition searchPosition = new GenomePosition(pos.getContig(), searchPos);
-      Pileup searchPileup = searchPileup(child, searchPosition);
+      Pileup searchPileup = childPiles.apply(searchPosition);
       if (TrioEvaluator.looksVariant(searchPileup.getDepth())) {
         otherVariants++;
         if (TrioEvaluator.moreThanTwoViableAlleles(searchPileup)) {
           otherTriallelics++;
         } else {
           otherBiallelics++;
-          concordances.add(concordance(child, searchPileup));
+          concordances.add(concordance(childPile, searchPileup));
           if (TrioEvaluator.looksDenovo(
-              searchPileup, searchPileup(p1, searchPosition), searchPileup(p2, searchPosition))) {
+              searchPileup, p1Piles.apply(searchPosition), p2Piles.apply(searchPosition))) {
             otherDenovoPositions.add(searchPos);
           }
         }
@@ -147,9 +154,5 @@ public class HaplotypeEvaluator {
             Sets.intersection(search1, h1).size() + Sets.intersection(search2, h2).size(),
             Sets.intersection(search1, h2).size() + Sets.intersection(search2, h1).size());
     return maxOverlap / totalOverlap;
-  }
-
-  private static Pileup searchPileup(Pileup base, GenomePosition searchPos) {
-    return new Pileup(base.getRecords(), searchPos);
   }
 }
