@@ -87,12 +87,13 @@ public class TrioEvaluator implements AutoCloseable {
 
     childIteratingCache = new SAMReaderIteratingCache(child);
     this.childPileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos ->
-                    new Pileup(
-                        childIteratingCache.new SAMPositionIterationOverlap(pos).getRecords(),
-                        pos)));
+        CacheBuilder.newBuilder()
+            .build(
+                CacheLoader.from(
+                    pos ->
+                        new Pileup(
+                            childIteratingCache.new SAMPositionIterationOverlap(pos).getRecords(),
+                            pos)));
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
@@ -165,6 +166,13 @@ public class TrioEvaluator implements AutoCloseable {
 
   private Optional<DeNovoResult> evaluate(ReferencePosition pos) {
     Pileup childPile = childPileups.getUnchecked(pos);
+    GenomePosition cleanup = new GenomePosition(pos.getContig(), pos.getPosition() - READ_LENGTH);
+    childPileups
+        .asMap()
+        .keySet()
+        .stream()
+        .filter(p -> p.compareTo(cleanup) < 0)
+        .forEach(childPileups::invalidate);
     if (looksVariant(childPile.getDepth())) {
       return Optional.of(
           new DeNovoResult(

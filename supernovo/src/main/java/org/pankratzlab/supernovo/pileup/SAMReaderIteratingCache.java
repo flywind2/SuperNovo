@@ -14,6 +14,7 @@ public class SAMReaderIteratingCache implements AutoCloseable {
   private SAMRecordIterator contigIter;
   private final TreeMap<Integer, ImmutableList.Builder<SAMRecord>> unpiledPositions;
   private String curContig;
+  private int curPosition;
 
   public class SAMPositionIterationOverlap implements SAMPositionOverlap {
 
@@ -22,22 +23,22 @@ public class SAMReaderIteratingCache implements AutoCloseable {
     public SAMPositionIterationOverlap(GenomePosition position) {
       if (position.getContig() != curContig) {
         curContig = position.getContig();
+        curPosition = 0;
         unpiledPositions.clear();
         if (contigIter != null) contigIter.close();
         contigIter = reader.queryContained(curContig, 0, 0);
       }
       int searchPos = position.getPosition();
       unpiledPositions.headMap(searchPos).clear();
-      while (contigIter.hasNext()) {
+      while (searchPos >= curPosition && contigIter.hasNext()) {
         SAMRecord curRecord = contigIter.next();
-        if (curRecord.getAlignmentEnd() >= searchPos) addRecord(curRecord);
-        if (curRecord.getAlignmentStart() > searchPos) break;
+        curPosition = curRecord.getAlignmentStart();
+        addRecord(curRecord);
       }
       records =
           Optional.ofNullable(unpiledPositions.remove(searchPos))
               .map(ImmutableList.Builder::build)
               .orElse(ImmutableList.of());
-      unpiledPositions.headMap(searchPos).clear();
     }
 
     @Override
