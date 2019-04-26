@@ -97,9 +97,11 @@ public class App implements Runnable {
   public void run() {
     SamReaderFactory srFactory = SamReaderFactory.make();
     try (SamReader child = srFactory.open(childBam);
+        SamReader childReader2 = srFactory.open(childBam);
         SamReader p1 = srFactory.open(p1Bam);
         SamReader p2 = srFactory.open(p2Bam);
-        TrioEvaluator trioEvaluator = new TrioEvaluator(child, childID, p1, p1ID, p2, p2ID)) {
+        TrioEvaluator trioEvaluator =
+            new TrioEvaluator(child, childReader2, childID, p1, p1ID, p2, p2ID)) {
       if (query.vcf != null) {
         try (VCFFileReader vcfReader = new VCFFileReader(query.vcf)) {
           trioEvaluator.reportDeNovos(vcfReader, output);

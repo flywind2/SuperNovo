@@ -14,9 +14,9 @@ import java.util.stream.Stream;
 import org.pankratzlab.supernovo.output.DeNovoResult;
 import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
+import org.pankratzlab.supernovo.pileup.IteratingPileupGenerator;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionQueryOverlap;
-import org.pankratzlab.supernovo.pileup.SAMReaderIteratingCache;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -28,7 +28,6 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -53,7 +52,7 @@ public class TrioEvaluator implements AutoCloseable {
 
   private final SAMSequenceDictionary dict;
 
-  private final SAMReaderIteratingCache childIteratingCache;
+  private final IteratingPileupGenerator childIteratingGenerator;
 
   private final LoadingCache<GenomePosition, Pileup> childPileups;
   private final LoadingCache<GenomePosition, Pileup> p1Pileups;
@@ -61,11 +60,13 @@ public class TrioEvaluator implements AutoCloseable {
 
   /**
    * @param child {@link SamReader} of child to evluate for de novo variants
+   * @param childReader2 TODO
    * @param parent1 {@link SamReader} of one parent for child
    * @param parent2 {@link SamReader} of second parent for child
    */
   public TrioEvaluator(
       SamReader child,
+      SamReader childReader2,
       String childID,
       SamReader parent1,
       String parent1ID,
@@ -85,15 +86,12 @@ public class TrioEvaluator implements AutoCloseable {
           "Parent sequence dictionaries don't match child sequence dictionary");
     }
 
-    childIteratingCache = new SAMReaderIteratingCache(child);
+    childIteratingGenerator = new IteratingPileupGenerator(child);
     this.childPileups =
-        CacheBuilder.newBuilder()
-            .build(
-                CacheLoader.from(
-                    pos ->
-                        new Pileup(
-                            childIteratingCache.new SAMPositionIterationOverlap(pos).getRecords(),
-                            pos)));
+        PILEUP_CACHE_BUILDER.build(
+            CacheLoader.from(
+                pos ->
+                    new Pileup(new SAMPositionQueryOverlap(childReader2, pos).getRecords(), pos)));
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
@@ -107,17 +105,12 @@ public class TrioEvaluator implements AutoCloseable {
   public void reportAllDeNovos(IndexedFastaSequenceFile genome, File output) throws IOException {
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
-      dict.getSequences()
-          .stream()
-          .map(SAMSequenceRecord::getSequenceName)
-          .map(genome::getSequence)
-          .flatMap(TrioEvaluator::generateRefPositions)
-          .map(this::evaluate)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .filter(d -> d.deNovo)
-          .map(DeNovoResult::generateLine)
-          .forEachOrdered(writer::println);
+      childIteratingGenerator.forEachRemaining(
+          pileup ->
+              evaluate(pileup)
+                  .filter(d -> d.deNovo)
+                  .map(DeNovoResult::generateLine)
+                  .ifPresent(writer::println));
     }
   }
 
@@ -178,7 +171,26 @@ public class TrioEvaluator implements AutoCloseable {
           new DeNovoResult(
               pos,
               new HaplotypeEvaluator(
-                      pos,
+                      childPile,
+                      childPileups::getUnchecked,
+                      p1Pileups::getUnchecked,
+                      p2Pileups::getUnchecked)
+                  .haplotypeConcordance(),
+              generateSample(childID, pos, childPile, childPile),
+              generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
+              generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
+    }
+    return Optional.empty();
+  }
+
+  private Optional<DeNovoResult> evaluate(Pileup childPile) {
+    GenomePosition pos = childPile.getPosition();
+    if (looksVariant(childPile.getDepth())) {
+      return Optional.of(
+          new DeNovoResult(
+              pos,
+              new HaplotypeEvaluator(
+                      childPile,
                       childPileups::getUnchecked,
                       p1Pileups::getUnchecked,
                       p2Pileups::getUnchecked)
@@ -218,7 +230,7 @@ public class TrioEvaluator implements AutoCloseable {
   }
 
   private static DeNovoResult.Sample generateSample(
-      String id, ReferencePosition pos, Pileup pileup, Pileup childPile) {
+      String id, GenomePosition pos, Pileup pileup, Pileup childPile) {
     return new DeNovoResult.Sample(
         id, pileup, pos, childPile.getDepth().getA1(), childPile.getDepth().getA2());
   }
@@ -236,6 +248,6 @@ public class TrioEvaluator implements AutoCloseable {
 
   @Override
   public void close() {
-    childIteratingCache.close();
+    childIteratingGenerator.close();
   }
 }

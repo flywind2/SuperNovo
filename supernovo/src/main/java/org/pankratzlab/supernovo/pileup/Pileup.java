@@ -75,6 +75,10 @@ public class Pileup {
       return this;
     }
 
+    public Pileup build() {
+      return new Pileup(this);
+    }
+
     private double calcPercentReadMatchesRef(SAMRecord samRecord) {
       return samRecord
               .getCigar()
@@ -95,6 +99,8 @@ public class Pileup {
   private final ImmutableMultiset<PileAllele> apparentMismapReadCounts;
   private final ImmutableMultiset<PileAllele> unmappedMateCounts;
 
+  private final GenomePosition position;
+
   private Optional<Depth> depth = Optional.empty();
 
   public Pileup(ImmutableList<SAMRecord> queriedRecords, GenomePosition position) {
@@ -111,6 +117,7 @@ public class Pileup {
     clippedReadCounts = builder.clippedReadCountsBuilder.build();
     apparentMismapReadCounts = builder.apparentMismapReadCountsBuilder.build();
     unmappedMateCounts = builder.unmappedMateCountsBuilder.build();
+    position = builder.position;
   }
 
   private static PileAllele getAppropriateAllele(SAMRecord samRecord, int readPos) {
@@ -181,6 +188,11 @@ public class Pileup {
     final double weightedDepth =
         weightedBaseCounts.values().stream().mapToDouble(Double::valueOf).sum();
     return ImmutableMap.copyOf(Maps.transformValues(weightedBaseCounts, c -> c / weightedDepth));
+  }
+
+  /** @return the position */
+  public GenomePosition getPosition() {
+    return position;
   }
 
   private Depth setDepth() {

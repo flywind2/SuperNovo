@@ -70,7 +70,8 @@ public class HaplotypeEvaluator {
   private static final int HAPLOTYPE_SEARCH_DISTANCE = 150;
   private static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
 
-  private final ReferencePosition pos;
+  private final Pileup childPile;
+  private final GenomePosition pos;
   private final Function<GenomePosition, Pileup> childPiles;
   private final Function<GenomePosition, Pileup> p1Piles;
   private final Function<GenomePosition, Pileup> p2Piles;
@@ -80,12 +81,13 @@ public class HaplotypeEvaluator {
    * @param p2
    */
   public HaplotypeEvaluator(
-      ReferencePosition pos,
+      Pileup childPile,
       Function<GenomePosition, Pileup> childPiles,
       Function<GenomePosition, Pileup> p1Piles,
       Function<GenomePosition, Pileup> p2Piles) {
     super();
-    this.pos = pos;
+    this.childPile = childPile;
+    this.pos = childPile.getPosition();
     this.childPiles = childPiles;
     this.p1Piles = p1Piles;
     this.p2Piles = p2Piles;
@@ -94,8 +96,6 @@ public class HaplotypeEvaluator {
   public Result haplotypeConcordance() {
     int startSearch = Integer.max(0, pos.getPosition() - HAPLOTYPE_SEARCH_DISTANCE);
     int stopSearch = pos.getPosition() + HAPLOTYPE_SEARCH_DISTANCE;
-
-    Pileup childPile = childPiles.apply(pos);
 
     Set<Integer> otherDenovoPositions = Sets.newHashSet();
     int otherTriallelics = 0;

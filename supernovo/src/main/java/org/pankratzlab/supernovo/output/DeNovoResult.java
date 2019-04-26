@@ -2,6 +2,7 @@ package org.pankratzlab.supernovo.output;
 
 import java.util.List;
 import java.util.Optional;
+import org.pankratzlab.supernovo.GenomePosition;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
 import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
@@ -17,7 +18,7 @@ public class DeNovoResult implements OutputFields {
 
     public final String id;
     public final int rawDepth;
-    public final int refRawDepth;
+    public final Optional<Integer> refRawDepth;
     public final Optional<Integer> altRawDepth;
     public final int a1RawDepth;
     public final int a2RawDepth;
@@ -32,7 +33,7 @@ public class DeNovoResult implements OutputFields {
     public final int a1UnmappedMateReads;
     public final int a2UnmappedMateReads;
     public final double weightedDepth;
-    public final double refWeightedDepth;
+    public final Optional<Double> refWeightedDepth;
     public final Optional<Double> altWeightedDepth;
     public final double a1WeightedDepth;
     public final double a2WeightedDepth;
@@ -51,18 +52,25 @@ public class DeNovoResult implements OutputFields {
     public Sample(
         String id,
         Pileup pileup,
-        ReferencePosition pos,
+        GenomePosition pos,
         Optional<PileAllele> a1,
         Optional<PileAllele> a2) {
       super();
       this.pileup = pileup;
       Depth depth = pileup.getDepth();
-      PileAllele ref = pos.getRefAllele();
-      Optional<PileAllele> alt = pos.getAltAllele();
+      Optional<PileAllele> ref;
+      Optional<PileAllele> alt;
+      if (pos instanceof ReferencePosition) {
+        ref = Optional.of(((ReferencePosition) pos).getRefAllele());
+        alt = ((ReferencePosition) pos).getAltAllele();
+      } else {
+        ref = Optional.empty();
+        alt = Optional.empty();
+      }
 
       this.id = id;
       rawDepth = depth.rawTotalDepth();
-      refRawDepth = depth.allelicRawDepth(ref);
+      refRawDepth = ref.map(depth::allelicRawDepth);
       altRawDepth = alt.map(depth::allelicRawDepth);
       a1RawDepth = a1.map(depth::allelicRawDepth).orElse(0);
       a2RawDepth = a2.map(depth::allelicRawDepth).orElse(0);
@@ -77,7 +85,7 @@ public class DeNovoResult implements OutputFields {
       a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       a2UnmappedMateReads = a2.map(pileup.getUnmappedMateCounts()::count).orElse(0);
       weightedDepth = depth.weightedTotalDepth();
-      refWeightedDepth = depth.allelicWeightedDepth(ref);
+      refWeightedDepth = ref.map(depth::allelicWeightedDepth);
       altWeightedDepth = alt.map(depth::allelicWeightedDepth);
       a1WeightedDepth = a1.map(depth::allelicWeightedDepth).orElse(0.0);
       a2WeightedDepth = a2.map(depth::allelicWeightedDepth).orElse(0.0);
@@ -107,7 +115,7 @@ public class DeNovoResult implements OutputFields {
 
   public final String chr;
   public final int position;
-  public final PileAllele refAllele;
+  public final Optional<PileAllele> refAllele;
   public final Optional<PileAllele> altAllele;
   public final Optional<PileAllele> allele1;
   public final Optional<PileAllele> allele2;
@@ -126,12 +134,12 @@ public class DeNovoResult implements OutputFields {
   public final Sample p1;
   public final Sample p2;
 
-  private final ReferencePosition pos;
+  private final GenomePosition pos;
   private final HaplotypeEvaluator.Result hapResults;
   private final List<Sample> parents;
 
   public DeNovoResult(
-      ReferencePosition pos,
+      GenomePosition pos,
       HaplotypeEvaluator.Result hapResults,
       Sample child,
       Sample p1,
@@ -145,8 +153,13 @@ public class DeNovoResult implements OutputFields {
 
     position = pos.getPosition();
     chr = pos.getContig();
-    refAllele = pos.getRefAllele();
-    altAllele = pos.getAltAllele();
+    if (pos instanceof ReferencePosition) {
+      refAllele = Optional.of(((ReferencePosition) pos).getRefAllele());
+      altAllele = ((ReferencePosition) pos).getAltAllele();
+    } else {
+      refAllele = Optional.empty();
+      altAllele = Optional.empty();
+    }
     allele1 = child.getDepth().getA1();
     allele2 = child.getDepth().getA2();
     biallelicHeterozygote = TrioEvaluator.looksBiallelic(child.getPileup());
