@@ -14,8 +14,8 @@ import java.util.stream.Stream;
 import org.pankratzlab.supernovo.output.DeNovoResult;
 import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
-import org.pankratzlab.supernovo.pileup.IteratingPileupGenerator;
 import org.pankratzlab.supernovo.pileup.Pileup;
+import org.pankratzlab.supernovo.pileup.PileupCache;
 import org.pankratzlab.supernovo.pileup.SAMPositionQueryOverlap;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
@@ -52,9 +52,7 @@ public class TrioEvaluator implements AutoCloseable {
 
   private final SAMSequenceDictionary dict;
 
-  private final IteratingPileupGenerator childIteratingGenerator;
-
-  private final LoadingCache<GenomePosition, Pileup> childPileups;
+  private final PileupCache childPileups;
   private final LoadingCache<GenomePosition, Pileup> p1Pileups;
   private final LoadingCache<GenomePosition, Pileup> p2Pileups;
 
@@ -86,12 +84,7 @@ public class TrioEvaluator implements AutoCloseable {
           "Parent sequence dictionaries don't match child sequence dictionary");
     }
 
-    childIteratingGenerator = new IteratingPileupGenerator(child);
-    this.childPileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos ->
-                    new Pileup(new SAMPositionQueryOverlap(childReader2, pos).getRecords(), pos)));
+    this.childPileups = new PileupCache(child, childReader2);
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
@@ -105,7 +98,7 @@ public class TrioEvaluator implements AutoCloseable {
   public void reportAllDeNovos(IndexedFastaSequenceFile genome, File output) throws IOException {
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
-      childIteratingGenerator.forEachRemaining(
+      childPileups.forEachRemaining(
           pileup ->
               evaluate(pileup)
                   .filter(d -> d.deNovo)
@@ -248,6 +241,6 @@ public class TrioEvaluator implements AutoCloseable {
 
   @Override
   public void close() {
-    childIteratingGenerator.close();
+    childPileups.close();
   }
 }
