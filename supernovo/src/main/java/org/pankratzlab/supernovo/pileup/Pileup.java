@@ -176,4 +176,23 @@ public class Pileup {
   public Depth getDepth() {
     return depth.orElseGet(this::setDepth);
   }
+
+  @Override
+  public String toString() {
+    return "Pileup [basePiles="
+        + basePiles
+        + ", weightedBaseCounts="
+        + weightedBaseCounts
+        + ", clippedReadCounts="
+        + clippedReadCounts
+        + ", apparentMismapReadCounts="
+        + apparentMismapReadCounts
+        + ", unmappedMateCounts="
+        + unmappedMateCounts
+        + ", position="
+        + position
+        + ", depth="
+        + depth
+        + "]";
+  }
 }
