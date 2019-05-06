@@ -49,7 +49,15 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
   public Pileup next() {
     if (!hasNext()) throw new NoSuchElementException();
     Pileup nextPileup = iterateNext();
-    lastIterated = nextPileup.getPosition();
+    GenomePosition newPosition = nextPileup.getPosition();
+    // Fill any voids with empty pileups to prevent attempted loading when queried
+    if (lastIterated != null && newPosition.getContig().equals(lastIterated.getContig())) {
+      for (int pos = lastIterated.getPosition() + 1; pos < newPosition.getPosition(); pos++) {
+        GenomePosition emptyPos = new GenomePosition(newPosition.getContig(), pos);
+        put(emptyPos, new Pileup.Builder(emptyPos).build());
+      }
+    }
+    lastIterated = newPosition;
     return nextPileup;
   }
 
