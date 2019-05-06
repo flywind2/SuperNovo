@@ -59,6 +59,14 @@ public class Depth {
     return pileup.getBaseCounts().size();
   }
 
+  public double rawMinorAlleleFraction() {
+    return biAlleles.stream().mapToDouble(pileup.getBaseFractions()::get).min().orElse(0.0);
+  }
+
+  public double weightedMinorAlleleFraction() {
+    return biAlleles.stream().mapToDouble(pileup.getWeightedBaseFractions()::get).min().orElse(0.0);
+  }
+
   /** @return the a1 */
   public Optional<PileAllele> getA1() {
     return a1;

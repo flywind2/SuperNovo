@@ -34,6 +34,7 @@ public class TrioEvaluator {
   private static final int READ_LENGTH = 150;
   private static final int MIN_DEPTH = 10;
   private static final int MIN_ALLELIC_DEPTH = 4;
+  private static final double MIN_ALLELIC_FRAC = 0.1;
   private static final double MAX_MISCALL_RATIO = 0.05;
   private static final double MAX_MISCALL_WEIGHT = 1.0;
   private static final CacheBuilder<Object, Object> PILEUP_CACHE_BUILDER =
@@ -135,6 +136,7 @@ public class TrioEvaluator {
   public static boolean looksVariant(Depth depth) {
     return depth.getBiAlleles().size() == 2
         && depth.weightedBiallelicDepth() >= MIN_DEPTH
+        && depth.weightedMinorAlleleFraction() >= MIN_ALLELIC_FRAC
         && Arrays.stream(Depth.Allele.values())
             .mapToDouble(depth::allelicWeightedDepth)
             .allMatch(d -> d >= MIN_ALLELIC_DEPTH);
