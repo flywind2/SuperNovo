@@ -90,4 +90,9 @@ public class GenomePosition implements Comparable<GenomePosition> {
     if (position != other.position) return false;
     return true;
   }
+
+  @Override
+  public String toString() {
+    return "GenomePosition [contig=" + contig + ", position=" + position + "]";
+  }
 }
