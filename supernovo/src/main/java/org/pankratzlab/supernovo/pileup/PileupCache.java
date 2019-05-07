@@ -3,16 +3,24 @@ package org.pankratzlab.supernovo.pileup;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.pankratzlab.supernovo.GenomePosition;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.ForwardingLoadingCache;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
+import htsjdk.samtools.QueryInterval;
 import htsjdk.samtools.SamReader;
 
 public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
     implements AutoCloseable, Iterator<Pileup> {
+
+  private final RangeSet<GenomePosition> intervals;
 
   private final IteratingPileupGenerator pileupGenerator;
   private final LoadingCache<GenomePosition, Pileup> cachedPileups;
@@ -20,24 +28,52 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
   private final SamReader samReaderAlt;
   private GenomePosition lastIterated;
 
-  public PileupCache(SamReader samReader, SamReader samReaderAlt) {
-    pileupGenerator = new IteratingPileupGenerator(samReader);
+  public PileupCache(
+      SamReader samReader, SamReader samReaderAlt, RangeSet<GenomePosition> intervals) {
+    this.intervals = TreeRangeSet.create(intervals);
+    pileupGenerator =
+        new IteratingPileupGenerator(
+            samReader.queryOverlapping(generateQueryIntervals(samReader, intervals)));
     this.samReaderAlt = samReaderAlt;
     cachedPileups = CacheBuilder.newBuilder().softValues().build(CacheLoader.from(this::load));
     readAheadPileups = Lists.newLinkedList();
   }
 
+  private static QueryInterval[] generateQueryIntervals(
+      SamReader samReader, RangeSet<GenomePosition> intervals) {
+    final Stream<QueryInterval> qiStream;
+    if (intervals.encloses(Range.all()))
+      qiStream =
+          IntStream.range(0, samReader.getFileHeader().getSequenceDictionary().size())
+              .mapToObj(i -> new QueryInterval(i, 0, 0));
+    else qiStream = intervals.asRanges().stream().map(r -> convertRangeToQI(samReader, r));
+    return QueryInterval.optimizeIntervals(qiStream.sorted().toArray(QueryInterval[]::new));
+  }
+
+  private static QueryInterval convertRangeToQI(SamReader samReader, Range<GenomePosition> range) {
+    GenomePosition start = range.lowerEndpoint();
+    GenomePosition stop = range.upperEndpoint();
+    String contig = start.getContig();
+    if (!stop.getContig().equals(contig))
+      throw new IllegalArgumentException("Illegal query range includes more than one contig");
+    int seqIndex = samReader.getFileHeader().getSequenceIndex(contig);
+    return new QueryInterval(seqIndex, start.getPosition(), stop.getPosition());
+  }
+
   private Pileup load(GenomePosition loadPosition) {
-    if (loadPosition.compareTo(lastIterated) > 0 && hasNext()) {
-      Pileup nextPileup;
-      do {
-        nextPileup = generateNext();
-        readAheadPileups.addLast(nextPileup);
-      } while (loadPosition.compareTo(nextPileup.getPosition()) > 0);
-      return nextPileup;
+    if (intervals.contains(loadPosition)) {
+      if (loadPosition.compareTo(lastIterated) > 0 && hasNext()) {
+        Pileup nextPileup;
+        do {
+          nextPileup = generateNext();
+          readAheadPileups.addLast(nextPileup);
+        } while (loadPosition.compareTo(nextPileup.getPosition()) > 0);
+        return nextPileup;
+      }
+      return new Pileup(
+          new SAMPositionQueryOverlap(samReaderAlt, loadPosition).getRecords(), loadPosition);
     }
-    return new Pileup(
-        new SAMPositionQueryOverlap(samReaderAlt, loadPosition).getRecords(), loadPosition);
+    return new Pileup.Builder(loadPosition).build();
   }
 
   @Override
@@ -48,14 +84,19 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
   @Override
   public Pileup next() {
     if (!hasNext()) throw new NoSuchElementException();
-    Pileup nextPileup = iterateNext();
+    return updateLastIterated(iterateNext());
+  }
+
+  private Pileup updateLastIterated(final Pileup nextPileup) {
     GenomePosition newPosition = nextPileup.getPosition();
-    // Fill any voids with empty pileups to prevent attempted loading when queried
+    // Remove any skipped over intervals from the targeted intervals
     if (lastIterated != null && newPosition.getContig().equals(lastIterated.getContig())) {
-      for (int pos = lastIterated.getPosition() + 1; pos < newPosition.getPosition(); pos++) {
-        GenomePosition emptyPos = new GenomePosition(newPosition.getContig(), pos);
-        put(emptyPos, new Pileup.Builder(emptyPos).build());
-      }
+      String contig = newPosition.getContig();
+      int start = lastIterated.getPosition() + 1;
+      int stop = newPosition.getPosition() - 1;
+      if (start <= stop)
+        intervals.remove(
+            Range.closed(new GenomePosition(contig, start), new GenomePosition(contig, stop)));
     }
     lastIterated = newPosition;
     return nextPileup;

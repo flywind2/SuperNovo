@@ -30,6 +30,15 @@ public class IteratingPileupGenerator implements Iterator<Pileup>, AutoCloseable
     pileupBuilders = Maps.newTreeMap();
   }
 
+  public IteratingPileupGenerator(final SAMRecordIterator samRecordIter) {
+    samRecordIter.assertSorted(SAMFileHeader.SortOrder.coordinate);
+    onClose = samRecordIter::close;
+    mappedRecordsIter =
+        Iterators.filter(samRecordIter, Predicates.not(SAMRecord::getReadUnmappedFlag));
+    curRecord = mappedRecordsIter.next();
+    pileupBuilders = Maps.newTreeMap();
+  }
+
   @Override
   public boolean hasNext() {
     return !pileupBuilders.isEmpty() || mappedRecordsIter.hasNext();

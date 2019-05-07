@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
@@ -62,6 +63,7 @@ public class TrioEvaluator implements AutoCloseable {
    * @param childReader2 TODO
    * @param parent1 {@link SamReader} of one parent for child
    * @param parent2 {@link SamReader} of second parent for child
+   * @param intervals Genomic intervals to interrogate
    */
   public TrioEvaluator(
       SamReader child,
@@ -70,7 +72,8 @@ public class TrioEvaluator implements AutoCloseable {
       SamReader parent1,
       String parent1ID,
       SamReader parent2,
-      String parent2ID) {
+      String parent2ID,
+      RangeSet<GenomePosition> intervals) {
     super();
     this.childID = childID;
     this.parent1ID = parent1ID;
@@ -85,7 +88,7 @@ public class TrioEvaluator implements AutoCloseable {
           "Parent sequence dictionaries don't match child sequence dictionary");
     }
 
-    this.childPileups = new PileupCache(child, childReader2);
+    this.childPileups = new PileupCache(child, childReader2, intervals);
     this.p1Pileups =
         PILEUP_CACHE_BUILDER.build(
             CacheLoader.from(
