@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -21,6 +23,8 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.RunAll;
 
 public class App implements Runnable {
+
+  private static final Logger LOG = LogManager.getLogger(App.class);
 
   private static class Query {
     @Option(
@@ -164,7 +168,7 @@ public class App implements Runnable {
         }
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.error("An IO error was encountered", e);
     }
   }
 }

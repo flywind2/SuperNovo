@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.pankratzlab.supernovo.GenomePosition;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -19,6 +21,7 @@ import htsjdk.samtools.SamReader;
 
 public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
     implements AutoCloseable, Iterator<Pileup> {
+  private static final Logger LOG = LogManager.getLogger(PileupCache.class);
 
   private final RangeSet<GenomePosition> intervals;
 
@@ -27,6 +30,7 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
   private final Deque<Pileup> readAheadPileups;
   private final SamReader samReaderAlt;
   private GenomePosition lastIterated;
+  private long lastLogged = System.currentTimeMillis();
 
   public PileupCache(
       SamReader samReader, SamReader samReaderAlt, RangeSet<GenomePosition> intervals) {
@@ -84,7 +88,18 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
   @Override
   public Pileup next() {
     if (!hasNext()) throw new NoSuchElementException();
+    maybeLog();
     return updateLastIterated(iterateNext());
+  }
+
+  private void maybeLog() {
+    if (System.currentTimeMillis() - lastLogged > 10000) {
+      lastLogged = System.currentTimeMillis();
+      LOG.info(
+          "Last piled position: {}, current read-ahead position: {}",
+          lastIterated,
+          readAheadPileups.isEmpty() ? "None" : readAheadPileups.peekLast().getPosition());
+    }
   }
 
   private Pileup updateLastIterated(final Pileup nextPileup) {
@@ -98,6 +113,7 @@ public class PileupCache extends ForwardingLoadingCache<GenomePosition, Pileup>
         intervals.remove(
             Range.closed(new GenomePosition(contig, start), new GenomePosition(contig, stop)));
     }
+
     lastIterated = newPosition;
     return nextPileup;
   }
