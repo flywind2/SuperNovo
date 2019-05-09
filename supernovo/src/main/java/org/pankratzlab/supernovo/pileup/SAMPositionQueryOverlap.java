@@ -1,20 +1,20 @@
 package org.pankratzlab.supernovo.pileup;
 
+import java.util.stream.Stream;
 import org.pankratzlab.supernovo.GenomePosition;
-import com.google.common.collect.ImmutableList;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
 
 public class SAMPositionQueryOverlap implements SAMPositionOverlap {
 
-  private final ImmutableList<SAMRecord> records;
+  private final Stream<SAMRecord> records;
 
   public SAMPositionQueryOverlap(SamReader samReader, GenomePosition position) {
     try (SAMRecordIterator iterator =
         samReader.queryOverlapping(
             position.getContig(), position.getPosition(), position.getPosition())) {
-      records = iterator.stream().collect(ImmutableList.toImmutableList());
+      records = iterator.stream();
     }
   }
 
@@ -22,7 +22,7 @@ public class SAMPositionQueryOverlap implements SAMPositionOverlap {
    * @see org.pankratzlab.supernovo.pileup.SAMPositionOverlap#getRecords()
    */
   @Override
-  public ImmutableList<SAMRecord> getRecords() {
+  public Stream<SAMRecord> getRecords() {
     return records;
   }
 }

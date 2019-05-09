@@ -103,8 +103,8 @@ public class Pileup {
 
   private Optional<Depth> depth = Optional.empty();
 
-  public Pileup(ImmutableList<SAMRecord> queriedRecords, GenomePosition position) {
-    this(new Builder(position).addAll(queriedRecords.stream()));
+  public Pileup(Stream<SAMRecord> queriedRecords, GenomePosition position) {
+    this(new Builder(position).addAll(queriedRecords));
   }
 
   private Pileup(Builder builder) {
