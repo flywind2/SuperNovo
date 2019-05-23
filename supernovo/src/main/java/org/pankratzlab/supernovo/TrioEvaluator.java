@@ -89,14 +89,20 @@ public class TrioEvaluator implements AutoCloseable {
     }
 
     this.childPileups = new PileupCache(child, childReader2, intervals);
-    this.p1Pileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(parent1, pos).getRecords(), pos)));
-    this.p2Pileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(parent2, pos).getRecords(), pos)));
+    this.p1Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent1));
+    this.p2Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent2));
+  }
+
+  private static CacheLoader<GenomePosition, Pileup> queryingPileupLoader(final SamReader reader) {
+    return new CacheLoader<GenomePosition, Pileup>() {
+
+      @Override
+      public Pileup load(GenomePosition pos) throws Exception {
+        try (SAMPositionQueryOverlap spqo = new SAMPositionQueryOverlap(reader, pos)) {
+          return new Pileup(spqo.getRecords(), pos);
+        }
+      }
+    };
   }
 
   public void reportAllDeNovos(IndexedFastaSequenceFile genome, File output) throws IOException {
