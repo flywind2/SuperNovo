@@ -68,6 +68,14 @@ public class IteratingPileupGenerator implements Iterator<Pileup>, AutoCloseable
 
   private void addRecord(SAMRecord record) {
     final String contig = record.getContig();
+    //    for (int i = 1; i <= record.getReadLength(); i++) {
+    //      int refPos = record.getReferencePositionAtReadPosition(i);
+    //      if (refPos != 0) {
+    //        pileupBuilders
+    //            .computeIfAbsent(new GenomePosition(contig, refPos), Pileup.Builder::new)
+    //            .addRecord(record);
+    //      }
+    //    }
     for (int i = record.getAlignmentStart(); i <= record.getAlignmentEnd(); i++) {
       pileupBuilders
           .computeIfAbsent(new GenomePosition(contig, i), Pileup.Builder::new)
