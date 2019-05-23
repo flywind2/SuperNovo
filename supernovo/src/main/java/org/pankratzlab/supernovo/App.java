@@ -13,12 +13,10 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.bed.BEDFeature;
 import htsjdk.variant.vcf.VCFFileReader;
 import picocli.CommandLine;
-import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.RunAll;
 
@@ -26,26 +24,13 @@ public class App implements Runnable {
 
   private static final Logger LOG = LogManager.getLogger(App.class);
 
-  private static class Query {
-    @Option(
-      names = {"--vcf", "-v"},
-      paramLabel = "VCF",
-      description = "VCF with variants to query for de novo mutations",
-      required = true
-    )
-    private File vcf;
-
-    @Option(
-      names = {"--fasta", "-f"},
-      paramLabel = "FASTA",
-      description = "Reference genome FASTA to query for de novo mutations",
-      required = true
-    )
-    private File referenceFasta;
-  }
-
-  @ArgGroup(exclusive = true, multiplicity = "1")
-  private Query query;
+  @Option(
+    names = {"--vcf", "-v"},
+    paramLabel = "VCF",
+    description =
+        "VCF with variants to query for de novo mutations (otherwise all positions will be queried)"
+  )
+  private File vcf;
 
   @Option(
     names = {"--childBam", "--bam"},
@@ -157,15 +142,12 @@ public class App implements Runnable {
         TrioEvaluator trioEvaluator =
             new TrioEvaluator(
                 child, childReader2, childID, p1, p1ID, p2, p2ID, generateTargetIntervals())) {
-      if (query.vcf != null) {
-        try (VCFFileReader vcfReader = new VCFFileReader(query.vcf)) {
+      if (vcf != null) {
+        try (VCFFileReader vcfReader = new VCFFileReader(vcf)) {
           trioEvaluator.reportDeNovos(vcfReader, output);
         }
       } else {
-        try (IndexedFastaSequenceFile fastaSeq =
-            new IndexedFastaSequenceFile(query.referenceFasta)) {
-          trioEvaluator.reportAllDeNovos(fastaSeq, output);
-        }
+        trioEvaluator.reportAllDeNovos(output);
       }
     } catch (IOException e) {
       LOG.error("An IO error was encountered", e);

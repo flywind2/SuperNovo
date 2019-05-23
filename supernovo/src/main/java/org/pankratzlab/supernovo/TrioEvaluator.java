@@ -30,7 +30,6 @@ import com.google.common.collect.Sets;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamReader;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
@@ -105,7 +104,7 @@ public class TrioEvaluator implements AutoCloseable {
     };
   }
 
-  public void reportAllDeNovos(IndexedFastaSequenceFile genome, File output) throws IOException {
+  public void reportAllDeNovos(File output) throws IOException {
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
       childPileups.forEachRemaining(
