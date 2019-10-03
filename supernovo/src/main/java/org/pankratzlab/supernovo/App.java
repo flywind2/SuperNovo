@@ -2,6 +2,8 @@ package org.pankratzlab.supernovo;
 
 import java.io.File;
 import java.io.IOException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.variant.vcf.VCFFileReader;
@@ -9,6 +11,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class App implements Runnable {
+
+  private static final Logger LOG = LogManager.getLogger(App.class);
 
   @Option(
     names = {"--vcf", "-v"},
@@ -87,7 +91,7 @@ public class App implements Runnable {
         VCFFileReader vcfReader = new VCFFileReader(vcf)) {
       new TrioEvaluator(child, childID, p1, p1ID, p2, p2ID).reportDeNovos(vcfReader, output);
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.error("An IO error was encountered", e);
     }
   }
 }
