@@ -44,9 +44,10 @@ public class TrioEvaluator {
   private final String parent1ID;
   private final String parent2ID;
 
-  private final LoadingCache<ReferencePosition, Pileup> childPileups;
-  private final LoadingCache<ReferencePosition, Pileup> p1Pileups;
-  private final LoadingCache<ReferencePosition, Pileup> p2Pileups;
+  
+  private final LoadingCache<GenomePosition, Pileup> childPileups;
+  private final LoadingCache<GenomePosition, Pileup> p1Pileups;
+  private final LoadingCache<GenomePosition, Pileup> p2Pileups;
 
   /**
    * @param child {@link SamReader} of child to evluate for de novo variants
@@ -65,18 +66,21 @@ public class TrioEvaluator {
     this.parent1ID = parent1ID;
     this.parent2ID = parent2ID;
 
-    this.childPileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(child, pos).getRecords(), pos)));
-    this.p1Pileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(parent1, pos).getRecords(), pos)));
-    this.p2Pileups =
-        PILEUP_CACHE_BUILDER.build(
-            CacheLoader.from(
-                pos -> new Pileup(new SAMPositionQueryOverlap(parent2, pos).getRecords(), pos)));
+    this.childPileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(child));
+    this.p1Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent1));
+    this.p2Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent2));
+  }
+  
+  private static CacheLoader<GenomePosition, Pileup> queryingPileupLoader(final SamReader reader) {
+    return new CacheLoader<GenomePosition, Pileup>() {
+
+      @Override
+      public Pileup load(GenomePosition pos) throws Exception {
+        try (SAMPositionQueryOverlap spqo = new SAMPositionQueryOverlap(reader, pos)) {
+          return new Pileup(spqo.getRecords(), pos);
+        }
+      }
+    };
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
@@ -120,14 +124,17 @@ public class TrioEvaluator {
           new DeNovoResult(
               pos,
               new HaplotypeEvaluator(
-                      pos, childPile, p1Pileups.getUnchecked(pos), p2Pileups.getUnchecked(pos))
-                  .haplotypeConcordance(),
-              generateSample(childID, pos, childPile, childPile),
-              generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
-              generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
-    }
-    return Optional.empty();
-  }
+                                     childPile,
+                                     childPileups::getUnchecked,
+                                     p1Pileups::getUnchecked,
+                                     p2Pileups::getUnchecked)
+                                 .haplotypeConcordance(),
+                             generateSample(childID, pos, childPile, childPile),
+                             generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
+                             generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
+                   }
+                   return Optional.empty();
+                 }
 
   public static boolean looksBiallelic(Pileup pileup) {
     return looksVariant(pileup.getDepth()) && !moreThanTwoViableAlleles(pileup);

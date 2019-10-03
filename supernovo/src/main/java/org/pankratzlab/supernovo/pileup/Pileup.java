@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.pankratzlab.supernovo.GenomePosition;
 import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
@@ -19,29 +20,26 @@ import htsjdk.samtools.SAMRecord;
 
 public class Pileup {
 
-  private static final double MIN_PERCENT_BASES_MATCH = 0.5;
+  public static class Builder {
+    private final GenomePosition position;
+    private final List<PileAllele> queriedAlleles;
+    private final ImmutableSetMultimap.Builder<PileAllele, Integer> basePilesBuilder;
+    private final Map<PileAllele, Double> weightedDepth;
+    private final ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder;
+    private final ImmutableMultiset.Builder<PileAllele> apparentMismapReadCountsBuilder;
+    private final ImmutableMultiset.Builder<PileAllele> unmappedMateCountsBuilder;
 
-  private final ImmutableSetMultimap<PileAllele, Integer> basePiles;
-  private final ImmutableMap<PileAllele, Double> weightedBaseCounts;
-  private final ImmutableList<SAMRecord> queriedRecords;
-  private final ImmutableMultiset<PileAllele> clippedReadCounts;
-  private final ImmutableMultiset<PileAllele> apparentMismapReadCounts;
-  private final ImmutableMultiset<PileAllele> unmappedMateCounts;
+    public Builder(GenomePosition position) {
+      this.position = position;
+      queriedAlleles = generateQueriedAlleles(position);
+      basePilesBuilder = ImmutableSetMultimap.builder();
+      weightedDepth = Maps.newHashMap();
+      clippedReadCountsBuilder = ImmutableMultiset.builder();
+      apparentMismapReadCountsBuilder = ImmutableMultiset.builder();
+      unmappedMateCountsBuilder = ImmutableMultiset.builder();
+    }
 
-  private Optional<Depth> depth = Optional.empty();
-
-  public Pileup(ImmutableList<SAMRecord> queriedRecords, GenomePosition position) {
-    super();
-    List<PileAllele> queriedAlleles = generateQueriedAlleles(position);
-    ImmutableSetMultimap.Builder<PileAllele, Integer> basePilesBuilder =
-        ImmutableSetMultimap.builder();
-    Map<PileAllele, Double> weightedDepth = Maps.newHashMap();
-    ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder = ImmutableMultiset.builder();
-    ImmutableMultiset.Builder<PileAllele> apparentMismapReadCountsBuilder =
-        ImmutableMultiset.builder();
-    ImmutableMultiset.Builder<PileAllele> unmappedMateCountsBuilder = ImmutableMultiset.builder();
-    for (int i = 0; i < queriedRecords.size(); i++) {
-      SAMRecord samRecord = queriedRecords.get(i);
+    public Builder addRecord(SAMRecord samRecord) {
       int readPos = samRecord.getReadPositionAtReferencePosition(position.getPosition()) - 1;
       if (readPos != -1) {
         PileAllele allele =
@@ -69,28 +67,57 @@ public class Pileup {
               weightedDepth.getOrDefault(allele, 0.0) + allele.weightedDepth(samRecord, readPos));
         }
       }
+      return this;
     }
-    basePiles = basePilesBuilder.build();
-    weightedBaseCounts =
-        ImmutableMap.<PileAllele, Double>builderWithExpectedSize(weightedDepth.size())
-            .putAll(weightedDepth)
-            .orderEntriesByValue(Comparator.reverseOrder())
-            .build();
-    clippedReadCounts = clippedReadCountsBuilder.build();
-    apparentMismapReadCounts = apparentMismapReadCountsBuilder.build();
-    unmappedMateCounts = unmappedMateCountsBuilder.build();
-    this.queriedRecords = queriedRecords;
+
+    public Builder addAll(Stream<SAMRecord> samRecords) {
+      samRecords.forEach(this::addRecord);
+      return this;
+    }
+
+    public Pileup build() {
+      return new Pileup(this);
+    }
+
+    private double calcPercentReadMatchesRef(SAMRecord samRecord) {
+      return samRecord
+              .getCigar()
+              .getCigarElements()
+              .stream()
+              .filter(c -> c.getOperator().equals(CigarOperator.EQ))
+              .mapToInt(CigarElement::getLength)
+              .sum()
+          / (double) samRecord.getReadLength();
+    }
   }
 
-  private double calcPercentReadMatchesRef(SAMRecord samRecord) {
-    return samRecord
-            .getCigar()
-            .getCigarElements()
-            .stream()
-            .filter(c -> c.getOperator().equals(CigarOperator.EQ))
-            .mapToInt(CigarElement::getLength)
-            .sum()
-        / (double) samRecord.getReadLength();
+  private static final double MIN_PERCENT_BASES_MATCH = 0.5;
+
+  private final ImmutableSetMultimap<PileAllele, Integer> basePiles;
+  private final ImmutableMap<PileAllele, Double> weightedBaseCounts;
+  private final ImmutableMultiset<PileAllele> clippedReadCounts;
+  private final ImmutableMultiset<PileAllele> apparentMismapReadCounts;
+  private final ImmutableMultiset<PileAllele> unmappedMateCounts;
+
+  private final GenomePosition position;
+
+  private Optional<Depth> depth = Optional.empty();
+
+  public Pileup(Stream<SAMRecord> queriedRecords, GenomePosition position) {
+    this(new Builder(position).addAll(queriedRecords));
+  }
+
+  private Pileup(Builder builder) {
+    basePiles = builder.basePilesBuilder.build();
+    weightedBaseCounts =
+        ImmutableMap.<PileAllele, Double>builderWithExpectedSize(builder.weightedDepth.size())
+            .putAll(builder.weightedDepth)
+            .orderEntriesByValue(Comparator.reverseOrder())
+            .build();
+    clippedReadCounts = builder.clippedReadCountsBuilder.build();
+    apparentMismapReadCounts = builder.apparentMismapReadCountsBuilder.build();
+    unmappedMateCounts = builder.unmappedMateCountsBuilder.build();
+    position = builder.position;
   }
 
   private static PileAllele getAppropriateAllele(SAMRecord samRecord, int readPos) {
@@ -138,11 +165,6 @@ public class Pileup {
     return basePiles;
   }
 
-  /** @return List of {@link SAMRecord}s piled up */
-  public ImmutableList<SAMRecord> getRecords() {
-    return queriedRecords;
-  }
-
   /** @return the clippedReadCounts */
   public ImmutableMultiset<PileAllele> getClippedReadCounts() {
     return clippedReadCounts;
@@ -166,6 +188,11 @@ public class Pileup {
     final double weightedDepth =
         weightedBaseCounts.values().stream().mapToDouble(Double::valueOf).sum();
     return ImmutableMap.copyOf(Maps.transformValues(weightedBaseCounts, c -> c / weightedDepth));
+  }
+
+  /** @return the position */
+  public GenomePosition getPosition() {
+    return position;
   }
 
   private Depth setDepth() {
