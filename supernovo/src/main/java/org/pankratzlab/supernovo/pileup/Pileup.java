@@ -50,7 +50,7 @@ public class Pileup {
                 .filter(a -> a.supported(samRecord, readPos))
                 .findFirst()
                 .orElseGet(() -> getAppropriateAllele(samRecord, readPos));
-        basePilesBuilder.put(allele, i);
+        basePilesBuilder.put(allele, samRecord.hashCode());
         boolean countWeight = true;
         if (samRecord.getCigar().isClipped()) {
           clippedReadCountsBuilder.add(allele);
