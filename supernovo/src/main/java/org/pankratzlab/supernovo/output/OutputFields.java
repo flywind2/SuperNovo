@@ -1,10 +1,10 @@
 package org.pankratzlab.supernovo.output;
 
 import java.lang.reflect.Field;
-import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import com.google.common.base.Optional;
 
 /**
  * Interface to specify and allow a class's public fields to be used as output columns instead of
@@ -44,7 +44,7 @@ public interface OutputFields {
       return ((OutputFields) value).fieldValues();
     }
     if (value instanceof Optional<?>) {
-      return Stream.of(((Optional<?>) value).map(Object::toString).orElse(Constants.MISSING));
+      return Stream.of(((Optional<?>) value).transform(Object::toString).or(Constants.MISSING));
     }
     return Stream.of(value.toString());
   }

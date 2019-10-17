@@ -1,7 +1,6 @@
 package org.pankratzlab.supernovo.output;
 
-import java.util.List;
-import java.util.Optional;
+import java.io.Serializable;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
 import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
@@ -9,11 +8,18 @@ import org.pankratzlab.supernovo.SNPAllele;
 import org.pankratzlab.supernovo.TrioEvaluator;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
-public class DeNovoResult implements OutputFields {
+public class DeNovoResult implements OutputFields, Serializable {
 
-  public static class Sample implements OutputFields {
+  /** */
+  private static final long serialVersionUID = 1L;
+
+  public static class Sample implements OutputFields, Serializable {
+
+    /** */
+    private static final long serialVersionUID = 1L;
 
     public final String id;
     public final int rawDepth;
@@ -63,24 +69,24 @@ public class DeNovoResult implements OutputFields {
       this.id = id;
       rawDepth = depth.rawTotalDepth();
       refRawDepth = depth.allelicRawDepth(ref);
-      altRawDepth = alt.map(depth::allelicRawDepth);
-      a1RawDepth = a1.map(depth::allelicRawDepth).orElse(0);
-      a2RawDepth = a2.map(depth::allelicRawDepth).orElse(0);
+      altRawDepth = alt.transform(depth::allelicRawDepth);
+      a1RawDepth = a1.transform(depth::allelicRawDepth).or(0);
+      a2RawDepth = a2.transform(depth::allelicRawDepth).or(0);
       a_rawDepth = depth.allelicRawDepth(SNPAllele.A);
       t_rawDepth = depth.allelicRawDepth(SNPAllele.T);
       c_rawDepth = depth.allelicRawDepth(SNPAllele.C);
       g_rawDepth = depth.allelicRawDepth(SNPAllele.G);
-      a1ClippedReads = a1.map(pileup.getClippedReadCounts()::count).orElse(0);
-      a2ClippedReads = a2.map(pileup.getClippedReadCounts()::count).orElse(0);
-      a1ApparentMismapReads = a1.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
-      a2ApparentMismapReads = a2.map(pileup.getApparentMismapReadCounts()::count).orElse(0);
-      a1UnmappedMateReads = a1.map(pileup.getUnmappedMateCounts()::count).orElse(0);
-      a2UnmappedMateReads = a2.map(pileup.getUnmappedMateCounts()::count).orElse(0);
+      a1ClippedReads = a1.transform(pileup.getClippedReadCounts()::count).or(0);
+      a2ClippedReads = a2.transform(pileup.getClippedReadCounts()::count).or(0);
+      a1ApparentMismapReads = a1.transform(pileup.getApparentMismapReadCounts()::count).or(0);
+      a2ApparentMismapReads = a2.transform(pileup.getApparentMismapReadCounts()::count).or(0);
+      a1UnmappedMateReads = a1.transform(pileup.getUnmappedMateCounts()::count).or(0);
+      a2UnmappedMateReads = a2.transform(pileup.getUnmappedMateCounts()::count).or(0);
       weightedDepth = depth.weightedTotalDepth();
       refWeightedDepth = depth.allelicWeightedDepth(ref);
-      altWeightedDepth = alt.map(depth::allelicWeightedDepth);
-      a1WeightedDepth = a1.map(depth::allelicWeightedDepth).orElse(0.0);
-      a2WeightedDepth = a2.map(depth::allelicWeightedDepth).orElse(0.0);
+      altWeightedDepth = alt.transform(depth::allelicWeightedDepth);
+      a1WeightedDepth = a1.transform(depth::allelicWeightedDepth).or(0.0);
+      a2WeightedDepth = a2.transform(depth::allelicWeightedDepth).or(0.0);
       a_weightedDepth = depth.allelicWeightedDepth(SNPAllele.A);
       t_weightedDepth = depth.allelicWeightedDepth(SNPAllele.T);
       c_weightedDepth = depth.allelicWeightedDepth(SNPAllele.C);
@@ -128,7 +134,7 @@ public class DeNovoResult implements OutputFields {
 
   private final ReferencePosition pos;
   private final HaplotypeEvaluator.Result hapResults;
-  private final List<Sample> parents;
+  private final ImmutableList<Sample> parents;
 
   public DeNovoResult(
       ReferencePosition pos,

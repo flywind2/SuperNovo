@@ -1,14 +1,14 @@
 package org.pankratzlab.supernovo.pileup;
 
+import java.io.Serializable;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.pankratzlab.supernovo.GenomePosition;
 import org.pankratzlab.supernovo.PileAllele;
 import org.pankratzlab.supernovo.ReferencePosition;
 import org.pankratzlab.supernovo.SNPAllele;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
@@ -18,11 +18,14 @@ import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 
-public class Pileup {
+public class Pileup implements Serializable {
+
+  /** */
+  private static final long serialVersionUID = 1L;
 
   public static class Builder {
     private final GenomePosition position;
-    private final List<PileAllele> queriedAlleles;
+    private final ImmutableList<PileAllele> queriedAlleles;
     private final ImmutableSetMultimap.Builder<PileAllele, Integer> basePilesBuilder;
     private final Map<PileAllele, Double> weightedDepth;
     private final ImmutableMultiset.Builder<PileAllele> clippedReadCountsBuilder;
@@ -101,7 +104,7 @@ public class Pileup {
 
   private final GenomePosition position;
 
-  private Optional<Depth> depth = Optional.empty();
+  private Optional<Depth> depth = Optional.absent();
 
   public Pileup(Stream<SAMRecord> queriedRecords, GenomePosition position) {
     this(new Builder(position).addAll(queriedRecords));
@@ -131,7 +134,7 @@ public class Pileup {
     ImmutableList.Builder<PileAllele> queriedAllelesBuilder =
         ImmutableList.builderWithExpectedSize(2);
     queriedAllelesBuilder.add(refPos.getRefAllele());
-    refPos.getAltAllele().ifPresent(queriedAllelesBuilder::add);
+    refPos.getAltAllele().toJavaUtil().ifPresent(queriedAllelesBuilder::add);
     return queriedAllelesBuilder.build();
   }
 
@@ -201,7 +204,7 @@ public class Pileup {
   }
 
   public Depth getDepth() {
-    return depth.orElseGet(this::setDepth);
+    return depth.or(this::setDepth);
   }
 
   @Override

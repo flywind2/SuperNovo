@@ -7,6 +7,9 @@ import htsjdk.samtools.SAMRecord;
 
 public class SNPAllele extends AbstractPileAllele {
 
+  /** */
+  private static final long serialVersionUID = 1L;
+
   private static LoadingCache<Byte, SNPAllele> cache =
       CacheBuilder.newBuilder().softValues().build(CacheLoader.from(SNPAllele::new));
 

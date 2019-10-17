@@ -1,8 +1,11 @@
 package org.pankratzlab.supernovo;
 
-import java.util.Optional;
+import java.io.Serializable;
+import com.google.common.base.Optional;
 
-public class GenomePosition implements Comparable<GenomePosition> {
+public class GenomePosition implements Comparable<GenomePosition>, Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   protected final String contig;
   protected final int position;
@@ -40,7 +43,7 @@ public class GenomePosition implements Comparable<GenomePosition> {
     try {
       return Optional.of(Integer.parseInt(digitBuilder.toString()));
     } catch (NumberFormatException e) {
-      return Optional.empty();
+      return Optional.absent();
     }
   }
 

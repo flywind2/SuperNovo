@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.pankratzlab.supernovo.output.DeNovoResult;
@@ -15,6 +14,7 @@ import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
 import org.pankratzlab.supernovo.pileup.Pileup;
 import org.pankratzlab.supernovo.pileup.SAMPositionQueryOverlap;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -121,7 +121,7 @@ public class TrioEvaluator {
     } catch (IllegalArgumentException iae) {
       LogManager.getLogger(App.class)
           .error("Failed to generate ReferencePosition for variant", iae);
-      return Optional.empty();
+      return Optional.absent();
     }
   }
 
@@ -141,7 +141,7 @@ public class TrioEvaluator {
               generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
               generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
     }
-    return Optional.empty();
+    return Optional.absent();
   }
 
   public static boolean looksBiallelic(Pileup pileup) {

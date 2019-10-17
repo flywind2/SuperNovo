@@ -1,8 +1,9 @@
 package org.pankratzlab.supernovo;
 
+import java.io.Serializable;
 import htsjdk.samtools.SAMRecord;
 
-public interface PileAllele {
+public interface PileAllele extends Serializable {
 
   /**
    * @param record to test

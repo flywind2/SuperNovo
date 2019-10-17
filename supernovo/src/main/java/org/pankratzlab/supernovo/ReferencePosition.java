@@ -1,12 +1,16 @@
 package org.pankratzlab.supernovo;
 
-import java.util.Optional;
+import java.io.Serializable;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Bytes;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 
-public class ReferencePosition extends GenomePosition {
+public class ReferencePosition extends GenomePosition implements Serializable {
+
+  /** */
+  private static final long serialVersionUID = 1L;
 
   private final PileAllele refAllele;
   private final Optional<PileAllele> altAllele;
@@ -42,7 +46,7 @@ public class ReferencePosition extends GenomePosition {
    * @param altAllele
    */
   public ReferencePosition(String contig, int position, PileAllele refAllele) {
-    this(contig, position, refAllele, Optional.empty());
+    this(contig, position, refAllele, Optional.absent());
   }
 
   public static ReferencePosition fromVariantContext(VariantContext vc, Allele ref, Allele alt) {

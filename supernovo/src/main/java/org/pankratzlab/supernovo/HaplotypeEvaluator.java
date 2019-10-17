@@ -1,5 +1,6 @@
 package org.pankratzlab.supernovo;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -10,7 +11,10 @@ import com.google.common.collect.Sets;
 
 public class HaplotypeEvaluator {
 
-  public static class Result {
+  public static class Result implements Serializable {
+    /** */
+    private static final long serialVersionUID = 1L;
+
     private final int otherVariants;
     private final int otherTriallelics;
     private final int otherBiallelics;

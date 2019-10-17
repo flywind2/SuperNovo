@@ -6,7 +6,13 @@ import htsjdk.samtools.SAMRecord;
 
 public class InsertionAllele extends AbstractPileAllele {
 
+  /** */
+  private static final long serialVersionUID = 1L;
+
   private class NonInsertionAllele extends AbstractPileAllele {
+
+    /** */
+    private static final long serialVersionUID = 1L;
 
     private NonInsertionAllele() {
       super(preInsertionBase.toString());
