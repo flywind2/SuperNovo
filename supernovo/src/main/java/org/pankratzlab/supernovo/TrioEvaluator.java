@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.logging.log4j.LogManager;
 import org.pankratzlab.supernovo.output.DeNovoResult;
 import org.pankratzlab.supernovo.output.OutputFields;
 import org.pankratzlab.supernovo.pileup.Depth;
@@ -44,7 +45,6 @@ public class TrioEvaluator {
   private final String parent1ID;
   private final String parent2ID;
 
-  
   private final LoadingCache<GenomePosition, Pileup> childPileups;
   private final LoadingCache<GenomePosition, Pileup> p1Pileups;
   private final LoadingCache<GenomePosition, Pileup> p2Pileups;
@@ -70,7 +70,7 @@ public class TrioEvaluator {
     this.p1Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent1));
     this.p2Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent2));
   }
-  
+
   private static CacheLoader<GenomePosition, Pileup> queryingPileupLoader(final SamReader reader) {
     return new CacheLoader<GenomePosition, Pileup>() {
 
@@ -91,6 +91,8 @@ public class TrioEvaluator {
           .stream()
           .filter(this::keepVariant)
           .map(this::generatePosition)
+          .filter(Optional::isPresent)
+          .map(Optional::get)
           .map(this::evaluate)
           .filter(Optional::isPresent)
           .map(Optional::get)
@@ -106,7 +108,7 @@ public class TrioEvaluator {
         && geno.getAlleles().stream().mapToInt(Allele::length).anyMatch(i -> i == 1);
   }
 
-  private ReferencePosition generatePosition(VariantContext vc) {
+  private Optional<ReferencePosition> generatePosition(VariantContext vc) {
     Allele ref = vc.getReference();
     Genotype geno = vc.getGenotype(childID);
     Allele alt =
@@ -114,7 +116,13 @@ public class TrioEvaluator {
             .stream()
             .filter(Predicates.not(vc.getReference()::equals))
             .collect(MoreCollectors.onlyElement());
-    return ReferencePosition.fromVariantContext(vc, ref, alt);
+    try {
+      return Optional.of(ReferencePosition.fromVariantContext(vc, ref, alt));
+    } catch (IllegalArgumentException iae) {
+      LogManager.getLogger(App.class)
+          .error("Failed to generate ReferencePosition for variant", iae);
+      return Optional.empty();
+    }
   }
 
   private Optional<DeNovoResult> evaluate(ReferencePosition pos) {
@@ -124,17 +132,17 @@ public class TrioEvaluator {
           new DeNovoResult(
               pos,
               new HaplotypeEvaluator(
-                                     childPile,
-                                     childPileups::getUnchecked,
-                                     p1Pileups::getUnchecked,
-                                     p2Pileups::getUnchecked)
-                                 .haplotypeConcordance(),
-                             generateSample(childID, pos, childPile, childPile),
-                             generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
-                             generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
-                   }
-                   return Optional.empty();
-                 }
+                      childPile,
+                      childPileups::getUnchecked,
+                      p1Pileups::getUnchecked,
+                      p2Pileups::getUnchecked)
+                  .haplotypeConcordance(),
+              generateSample(childID, pos, childPile, childPile),
+              generateSample(parent1ID, pos, p1Pileups.getUnchecked(pos), childPile),
+              generateSample(parent2ID, pos, p2Pileups.getUnchecked(pos), childPile)));
+    }
+    return Optional.empty();
+  }
 
   public static boolean looksBiallelic(Pileup pileup) {
     return looksVariant(pileup.getDepth()) && !moreThanTwoViableAlleles(pileup);
