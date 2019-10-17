@@ -1,13 +1,20 @@
 package org.pankratzlab.supernovo;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import org.apache.logging.log4j.LogManager;
 import org.pankratzlab.supernovo.output.DeNovoResult;
 import org.pankratzlab.supernovo.output.OutputFields;
@@ -86,18 +93,45 @@ public class TrioEvaluator {
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
-      queriedVariants
-          .iterator()
-          .stream()
-          .filter(this::keepVariant)
-          .map(this::generatePosition)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .map(this::evaluate)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .map(DeNovoResult::generateLine)
-          .forEachOrdered(writer::println);
+      ImmutableList<DeNovoResult> results =
+          queriedVariants
+              .iterator()
+              .stream()
+              .parallel()
+              .filter(this::keepVariant)
+              .map(this::generatePosition)
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .map(this::evaluate)
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .collect(ImmutableList.toImmutableList());
+      serializeResults(results, formSerializedOutput(output));
+      results.stream().map(DeNovoResult::generateLine).forEachOrdered(writer::println);
+    }
+  }
+
+  private static File formSerializedOutput(File textOutput) {
+    String path = textOutput.getPath();
+    return new File(path.substring(0, path.lastIndexOf('.')) + ".DeNovoResultList.ser.gz");
+  }
+
+  private void serializeResults(ImmutableList<DeNovoResult> results, File output) {
+    try (ObjectOutputStream oos =
+        new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(output)))) {
+      oos.writeObject(results);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<DeNovoResult> deserializeResults(File input)
+      throws IOException, ClassNotFoundException {
+    try (ObjectInputStream ois =
+        new ObjectInputStream(
+            new BufferedInputStream(new GZIPInputStream(new FileInputStream(input))))) {
+      return (List<DeNovoResult>) ois.readObject();
     }
   }
 
