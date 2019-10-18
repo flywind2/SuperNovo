@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
 import htsjdk.variant.vcf.VCFFileReader;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -84,12 +82,9 @@ public class App implements Runnable {
 
   @Override
   public void run() {
-    SamReaderFactory srFactory = SamReaderFactory.make();
-    try (SamReader child = srFactory.open(childBam);
-        SamReader p1 = srFactory.open(p1Bam);
-        SamReader p2 = srFactory.open(p2Bam);
-        VCFFileReader vcfReader = new VCFFileReader(vcf)) {
-      new TrioEvaluator(child, childID, p1, p1ID, p2, p2ID).reportDeNovos(vcfReader, output);
+    try (VCFFileReader vcfReader = new VCFFileReader(vcf)) {
+      new TrioEvaluator(childBam, childID, p1Bam, p1ID, p2Bam, p2ID)
+          .reportDeNovos(vcfReader, output);
     } catch (IOException e) {
       LOG.error("An IO error was encountered", e);
     }

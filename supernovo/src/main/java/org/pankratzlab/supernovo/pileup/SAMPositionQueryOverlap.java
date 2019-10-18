@@ -1,20 +1,27 @@
 package org.pankratzlab.supernovo.pileup;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.util.stream.Stream;
 import org.pankratzlab.supernovo.GenomePosition;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 
 public class SAMPositionQueryOverlap implements SAMPositionOverlap, Closeable {
 
+  private static final SamReaderFactory SR_FACTORY = SamReaderFactory.make();
+
   private final Stream<SAMRecord> records;
   private final SAMRecordIterator iterator;
+  private final SamReader reader;
 
-  public SAMPositionQueryOverlap(SamReader samReader, GenomePosition position) {
+  public SAMPositionQueryOverlap(File bam, GenomePosition position) {
+    reader = SR_FACTORY.open(bam);
     iterator =
-        samReader.queryOverlapping(
+        reader.queryOverlapping(
             position.getContig(), position.getPosition(), position.getPosition());
     records = iterator.stream();
   }
@@ -30,5 +37,11 @@ public class SAMPositionQueryOverlap implements SAMPositionOverlap, Closeable {
   @Override
   public void close() {
     iterator.close();
+    try {
+      reader.close();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 }

@@ -57,33 +57,33 @@ public class TrioEvaluator {
   private final LoadingCache<GenomePosition, Pileup> p2Pileups;
 
   /**
-   * @param child {@link SamReader} of child to evluate for de novo variants
-   * @param parent1 {@link SamReader} of one parent for child
-   * @param parent2 {@link SamReader} of second parent for child
+   * @param childBam {@link SamReader} of child to evluate for de novo variants
+   * @param parent1Bam {@link SamReader} of one parent for child
+   * @param parent2Bam {@link SamReader} of second parent for child
    */
   public TrioEvaluator(
-      SamReader child,
+      File childBam,
       String childID,
-      SamReader parent1,
+      File parent1Bam,
       String parent1ID,
-      SamReader parent2,
+      File parent2Bam,
       String parent2ID) {
     super();
     this.childID = childID;
     this.parent1ID = parent1ID;
     this.parent2ID = parent2ID;
 
-    this.childPileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(child));
-    this.p1Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent1));
-    this.p2Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent2));
+    this.childPileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(childBam));
+    this.p1Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent1Bam));
+    this.p2Pileups = PILEUP_CACHE_BUILDER.build(queryingPileupLoader(parent2Bam));
   }
 
-  private static CacheLoader<GenomePosition, Pileup> queryingPileupLoader(final SamReader reader) {
+  private static CacheLoader<GenomePosition, Pileup> queryingPileupLoader(final File bam) {
     return new CacheLoader<GenomePosition, Pileup>() {
 
       @Override
-      public Pileup load(GenomePosition pos) throws Exception {
-        try (SAMPositionQueryOverlap spqo = new SAMPositionQueryOverlap(reader, pos)) {
+      public Pileup load(GenomePosition pos) {
+        try (SAMPositionQueryOverlap spqo = new SAMPositionQueryOverlap(bam, pos)) {
           return new Pileup(spqo.getRecords(), pos);
         }
       }
@@ -91,22 +91,22 @@ public class TrioEvaluator {
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
+    ImmutableList<DeNovoResult> results =
+        queriedVariants
+            .iterator()
+            .stream()
+            .parallel()
+            .filter(this::keepVariant)
+            .map(this::generatePosition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(this::evaluate)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(ImmutableList.toImmutableList());
+    serializeResults(results, formSerializedOutput(output));
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
-      ImmutableList<DeNovoResult> results =
-          queriedVariants
-              .iterator()
-              .stream()
-              .parallel()
-              .filter(this::keepVariant)
-              .map(this::generatePosition)
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .map(this::evaluate)
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .collect(ImmutableList.toImmutableList());
-      serializeResults(results, formSerializedOutput(output));
       results.stream().map(DeNovoResult::generateLine).forEachOrdered(writer::println);
     }
   }
