@@ -1,5 +1,6 @@
 package org.pankratzlab.supernovo.pileup;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Function;
@@ -7,7 +8,10 @@ import org.pankratzlab.supernovo.PileAllele;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
-public class Depth {
+public class Depth implements Serializable {
+
+  /** */
+  private static final long serialVersionUID = 1L;
 
   public enum Allele {
     A1(Depth::getA1),
