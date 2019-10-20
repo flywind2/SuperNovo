@@ -91,20 +91,30 @@ public class TrioEvaluator {
   }
 
   public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
-    ImmutableList<DeNovoResult> results =
-        queriedVariants
-            .iterator()
-            .stream()
-            .parallel()
-            .filter(this::keepVariant)
-            .map(this::generatePosition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(this::evaluate)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(ImmutableList.toImmutableList());
-    serializeResults(results, formSerializedOutput(output));
+    File serOutput = formSerializedOutput(output);
+    final ImmutableList<DeNovoResult> results;
+    if (serOutput.exists()) {
+      try {
+        results = deserializeResults(serOutput);
+      } catch (ClassNotFoundException e) {
+        App.LOG.error("Error loading serialized results", e);
+        return;
+      }
+    } else {
+      results =
+          queriedVariants
+              .iterator()
+              .stream()
+              .filter(this::keepVariant)
+              .map(this::generatePosition)
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .map(this::evaluate)
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .collect(ImmutableList.toImmutableList());
+      serializeResults(results, serOutput);
+    }
     try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(output)))) {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
       results.stream().map(DeNovoResult::generateLine).forEachOrdered(writer::println);
@@ -126,12 +136,12 @@ public class TrioEvaluator {
   }
 
   @SuppressWarnings("unchecked")
-  private List<DeNovoResult> deserializeResults(File input)
+  private ImmutableList<DeNovoResult> deserializeResults(File input)
       throws IOException, ClassNotFoundException {
     try (ObjectInputStream ois =
         new ObjectInputStream(
             new BufferedInputStream(new GZIPInputStream(new FileInputStream(input))))) {
-      return (List<DeNovoResult>) ois.readObject();
+      return (ImmutableList<DeNovoResult>) ois.readObject();
     }
   }
 
