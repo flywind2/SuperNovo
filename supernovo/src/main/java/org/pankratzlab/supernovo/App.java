@@ -10,7 +10,7 @@ import picocli.CommandLine.Option;
 
 public class App implements Runnable {
 
-  private static final Logger LOG = LogManager.getLogger(App.class);
+  public static final Logger LOG = LogManager.getLogger(App.class);
 
   @Option(
     names = {"--vcf", "-v"},
