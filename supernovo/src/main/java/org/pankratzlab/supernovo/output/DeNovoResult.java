@@ -1,5 +1,7 @@
 package org.pankratzlab.supernovo.output;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import org.pankratzlab.supernovo.HaplotypeEvaluator;
 import org.pankratzlab.supernovo.PileAllele;
@@ -109,6 +111,12 @@ public class DeNovoResult implements OutputFields, Serializable {
     }
   }
 
+  private static final int MIN_PARENTAL_DEPTH = 10;
+
+  private static final int MAX_PARENTAL_ALLELIC_DEPTH = 1;
+
+  private static final double MAX_PARENTAL_ALLELIC_FRAC = 0.5;
+
   private static final String NO_NON_SUPERNOVO_REASON = ".";
 
   public final String chr;
@@ -117,10 +125,10 @@ public class DeNovoResult implements OutputFields, Serializable {
   public final Optional<PileAllele> altAllele;
   public final Optional<PileAllele> allele1;
   public final Optional<PileAllele> allele2;
-  public final boolean biallelicHeterozygote;
-  public final boolean deNovo;
-  public final boolean superNovo;
-  public final String nonSuperNovoReason;
+  public boolean biallelicHeterozygote;
+  public boolean deNovo;
+  public boolean superNovo;
+  public String nonSuperNovoReason;
   public final double meanHaplotypeConcordance;
   public final int overlappingReadsHetCount;
   public static final double MIN_HAPLOTYPE_CONCORDANCE = 0.75;
@@ -155,8 +163,7 @@ public class DeNovoResult implements OutputFields, Serializable {
     altAllele = pos.getAltAllele();
     allele1 = child.getDepth().getA1();
     allele2 = child.getDepth().getA2();
-    biallelicHeterozygote = TrioEvaluator.looksBiallelic(child.getPileup());
-    deNovo = TrioEvaluator.looksDenovo(child.getPileup(), p1.getPileup(), p2.getPileup());
+
     if (hapResults.getConcordances().isEmpty()) meanHaplotypeConcordance = 1.0;
     else
       meanHaplotypeConcordance =
@@ -175,16 +182,29 @@ public class DeNovoResult implements OutputFields, Serializable {
                 .mapToDouble(Double::valueOf)
                 .filter(d -> d < MIN_HAPLOTYPE_CONCORDANCE)
                 .count();
+    overlappingReadsAdjacentDeNovoCounts = hapResults.getAdjacentDeNovos();
+    overlappingReadsIndependentDeNovoCount = hapResults.getOtherDeNovos();
+    overlapingReadsThirdAlleleCount = hapResults.getOtherTriallelics();
+    setFlags();
+  }
+
+  private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+    ois.defaultReadObject();
+    setFlags();
+  }
+
+  private void setFlags() {
+    biallelicHeterozygote = TrioEvaluator.looksBiallelic(child.getPileup());
+    deNovo = TrioEvaluator.looksDenovo(child.getPileup(), p1.getPileup(), p2.getPileup());
     if (!biallelicHeterozygote) nonSuperNovoReason = "Not biallelic heterozygote";
     else if (!deNovo) nonSuperNovoReason = "Not denovo";
+    else if (Math.min(p1.weightedDepth, p2.weightedDepth) < MIN_PARENTAL_DEPTH)
+      nonSuperNovoReason = "Parental weighted depth < " + MIN_PARENTAL_DEPTH;
     else if (hapResults.getOtherDeNovos() != 0) nonSuperNovoReason = "Other denovos in region";
     else if (meanHaplotypeConcordance < MIN_HAPLOTYPE_CONCORDANCE)
       nonSuperNovoReason = "Haplotype Concordance < " + MIN_HAPLOTYPE_CONCORDANCE;
     else if (hapResults.getOtherTriallelics() != 0) nonSuperNovoReason = "Triallelics in region";
     else nonSuperNovoReason = NO_NON_SUPERNOVO_REASON;
     superNovo = nonSuperNovoReason.equals(NO_NON_SUPERNOVO_REASON);
-    overlappingReadsAdjacentDeNovoCounts = hapResults.getAdjacentDeNovos();
-    overlappingReadsIndependentDeNovoCount = hapResults.getOtherDeNovos();
-    overlapingReadsThirdAlleleCount = hapResults.getOtherTriallelics();
   }
 }
