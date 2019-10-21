@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import htsjdk.variant.vcf.VCFFileReader;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -82,9 +81,8 @@ public class App implements Runnable {
 
   @Override
   public void run() {
-    try (VCFFileReader vcfReader = new VCFFileReader(vcf)) {
-      new TrioEvaluator(childBam, childID, p1Bam, p1ID, p2Bam, p2ID)
-          .reportDeNovos(vcfReader, output);
+    try {
+      new TrioEvaluator(childBam, childID, p1Bam, p1ID, p2Bam, p2ID).reportDeNovos(vcf, output);
     } catch (IOException e) {
       LOG.error("An IO error was encountered", e);
     }

@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.apache.logging.log4j.LogManager;
@@ -32,9 +33,11 @@ import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import htsjdk.samtools.SamReader;
+import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFContigHeaderLine;
 import htsjdk.variant.vcf.VCFFileReader;
 
 public class TrioEvaluator {
@@ -90,7 +93,7 @@ public class TrioEvaluator {
     };
   }
 
-  public void reportDeNovos(VCFFileReader queriedVariants, File output) throws IOException {
+  public void reportDeNovos(File vcf, File output) throws IOException {
     File serOutput = formSerializedOutput(output);
     final ImmutableList<DeNovoResult> results;
     if (serOutput.exists()) {
@@ -102,16 +105,17 @@ public class TrioEvaluator {
       }
     } else {
       results =
-          queriedVariants
-              .iterator()
-              .stream()
-              .filter(this::keepVariant)
-              .map(this::generatePosition)
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .map(this::evaluate)
-              .filter(Optional::isPresent)
-              .map(Optional::get)
+          perContigVCFReaders(vcf)
+              .parallel()
+              .flatMap(
+                  s ->
+                      s.filter(this::keepVariant)
+                          .map(this::generatePosition)
+                          .filter(Optional::isPresent)
+                          .map(Optional::get)
+                          .map(this::evaluate)
+                          .filter(Optional::isPresent)
+                          .map(Optional::get))
               .collect(ImmutableList.toImmutableList());
       serializeResults(results, serOutput);
     }
@@ -119,6 +123,16 @@ public class TrioEvaluator {
       writer.println(OutputFields.generateHeader(DeNovoResult.class));
       results.stream().map(DeNovoResult::generateLine).forEachOrdered(writer::println);
     }
+  }
+
+  private Stream<Stream<VariantContext>> perContigVCFReaders(File vcf) {
+    return new VCFFileReader(vcf)
+        .getFileHeader()
+        .getContigLines()
+        .stream()
+        .map(VCFContigHeaderLine::getID)
+        .map(v -> new VCFFileReader(vcf).query(v, 1, Integer.MAX_VALUE))
+        .map(CloseableIterator::stream);
   }
 
   private static File formSerializedOutput(File textOutput) {
