@@ -224,9 +224,11 @@ public class TrioEvaluator {
         .getBaseCounts()
         .entrySet()
         .stream()
-        .filter(e -> e.getCount() > MAX_MISCALL_WEIGHT)
+        .filter(
+            e ->
+                e.getCount() > MAX_MISCALL_WEIGHT
+                    || pileup.getBaseFractions().get(e.getElement()) > MAX_MISCALL_RATIO)
         .map(Multiset.Entry::getElement)
-        .filter(b -> pileup.getBaseFractions().get(b) > MAX_MISCALL_RATIO)
         .collect(ImmutableSet.toImmutableSet());
   }
 
