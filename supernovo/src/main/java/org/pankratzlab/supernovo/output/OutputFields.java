@@ -46,6 +46,9 @@ public interface OutputFields {
     if (value instanceof Optional<?>) {
       return Stream.of(((Optional<?>) value).transform(Object::toString).or(Constants.MISSING));
     }
+    if (value == null) {
+      return Stream.of(Constants.MISSING);
+    }
     return Stream.of(value.toString());
   }
 
